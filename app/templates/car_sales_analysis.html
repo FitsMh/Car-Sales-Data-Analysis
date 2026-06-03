@@ -1,0 +1,1096 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}销量分析{% endblock %}
+
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">销量分析</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" style="color: var(--biz-normal) !important;">首页</a></li>
+                <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">销量分析</li>
+            </ol>
+        </nav>
+    </div>
+
+    {% if selected_city != 'all' or selected_month != '0' %}
+    <div style="margin-right: 20px; font-size: 13px; color: var(--biz-text); background: var(--biz-light); padding: 4px 10px; border-radius: 12px; white-space: nowrap; border: 1px solid var(--biz-border);">
+        {% if selected_city != 'all' %}
+            <span style="color: var(--biz-normal); font-weight: 500;">城市数据仅支持查看上个月</span>，历史月份数据和更多功能仅在【全国】模式下可用
+        {% else %}
+            销量预测等高级功能仅在【全国+最新月份】模式下可用
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 me-3">
+        <select id="citySelect" class="form-select form-select-sm" style="width: 160px; background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);">
+            {% for city_item in city_options %}
+            <option value="{{ city_item.key }}" {% if city_item.key == selected_city %}selected{% endif %}>{{ city_item.label }}</option>
+            {% endfor %}
+        </select>
+
+        <select id="monthSelect" class="form-select form-select-sm" style="width: 160px; background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);">
+            {% for month_item in month_options %}
+            <option value="{{ month_item.key }}" {% if month_item.key == selected_month %}selected{% endif %}>{{ month_item.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="d-flex gap-2 ms-2">
+        <a id="exportSalesReportBtn"
+           href="{% url 'export_car_sales_report' %}?city={{ selected_city }}&month={{ selected_month }}"
+           class="btn btn-sm" style="background-color:var(--biz-normal);color:white;border-radius:8px;">
+            <i class="bi bi-download"></i> 导出销量分析报告
+        </a>
+    </div>
+
+</div>
+
+<style>
+.info-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.info-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15) !important;
+}
+.card-title {
+    color: var(--biz-dark) !important;
+    font-weight: 600;
+    font-size: 22px !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+}
+.card.h-100 {
+    transition: all 0.3s ease;
+}
+.card.h-100:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+}
+.breadcrumb-item a {
+    color: var(--biz-normal) !important;
+    transition: color 0.3s ease;
+}
+.breadcrumb-item a:hover {
+    color: var(--biz-dark) !important;
+}
+.breadcrumb-item.active {
+    color: var(--biz-dark) !important;
+    font-weight: 500;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--biz-normal) !important;
+}
+.form-select:focus {
+    border-color: var(--biz-normal) !important;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.2) !important;
+}
+.stat-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.08);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--biz-card-bg) !important;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.15);
+}
+.stat-card .card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.stat-label {
+    font-size: 14px;
+    color: var(--biz-text) !important;
+    opacity: 0.8;
+    margin-bottom: 8px;
+}
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--biz-normal);
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+.stat-desc {
+    font-size: 12px;
+    color: var(--biz-text) !important;
+    opacity: 0.7;
+}
+
+.brand-rank-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: var(--biz-light);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
+    position: relative;
+    border: 1px solid var(--biz-border);
+}
+.brand-rank-item:hover {
+    background: color-mix(in srgb, var(--biz-normal) 10%, transparent);
+    transform: translateX(4px);
+}
+.brand-rank-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--biz-normal);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+.brand-rank-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: contain;
+    margin-right: 12px;
+    background: var(--biz-card-bg);
+    padding: 4px;
+    border: 1px solid var(--biz-border);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.brand-rank-img:hover {
+    transform: scale(1.08);
+}
+.brand-rank-info {
+    flex: 1;
+    min-width: 0;
+}
+.brand-rank-name {
+    font-weight: 600;
+    color: var(--biz-text);
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.brand-rank-desc {
+    font-size: 12px;
+    color: var(--biz-text);
+    opacity: 0.7;
+    margin-top: 2px;
+}
+.brand-rank-sales {
+    font-weight: 700;
+    color: var(--biz-normal);
+    font-size: 16px;
+    text-align: right;
+    flex-shrink: 0;
+    min-width: 80px;
+}
+.brand-rank-rate {
+    font-size: 12px;
+    color: var(--biz-text);
+    opacity: 0.7;
+    text-align: right;
+    margin-top: 2px;
+}
+
+.brand-img-preview {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    left: 70px;
+    top: 50%;
+    transform: translateY(-50%) scale(0.9);
+    opacity: 0;
+    background: var(--biz-card-bg);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    border: 1px solid var(--biz-border);
+    padding: 10px;
+    z-index: 99999;
+    pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.brand-img-preview.show {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+}
+.brand-img-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+#currentViewInfo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--biz-text);
+    font-weight: 500;
+    background: var(--biz-light);
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    border: 1px solid var(--biz-border);
+}
+#currentViewInfo img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    border-radius: 3px;
+}
+#currentViewInfo .rank {
+    color: var(--biz-normal);
+    font-weight: bold;
+}
+
+#currentCarViewInfo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--biz-text);
+    font-weight: 500;
+    background: var(--biz-light);
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    border: 1px solid var(--biz-border);
+}
+#currentCarViewInfo img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    border-radius: 3px;
+}
+#currentCarViewInfo .rank {
+    color: var(--biz-normal);
+    font-weight: bold;
+}
+
+.card-subtitle-uniform {
+    font-size: 15px !important;
+    color: var(--biz-text) !important;
+    opacity: 0.8 !important;
+    margin-top: 8px !important;
+    margin-bottom: 0px !important;
+    line-height: 1.4 !important;
+    font-weight: 400 !important;
+}
+
+[data-theme="dark"] .form-select option {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+#brandScrollContainer::-webkit-scrollbar {
+    width: 6px;
+}
+#brandScrollContainer::-webkit-scrollbar-track {
+    background: transparent;
+}
+#brandScrollContainer::-webkit-scrollbar-thumb {
+    background: #2563eb;
+    border-radius: 3px;
+}
+#brandScrollContainer::-webkit-scrollbar-thumb:hover {
+    background: #1d4ed8;
+}
+[data-theme="dark"] #brandScrollContainer::-webkit-scrollbar-thumb {
+    background: #60a5fa;
+}
+.form-select:disabled,
+.form-select[disabled] {
+    background-color: #eff6ff !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+
+[data-theme="dark"] .form-select option {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .form-select:disabled {
+    background-color: #2d3748 !important;
+    color: #6b7280 !important;
+    border-color: #4a5568 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+}
+</style>
+
+<section class="section mb-4">
+    <div class="row">
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-label">累计总销量</div>
+                    <div class="stat-value">{{ total_sales|default:0 }}</div>
+                    <div class="stat-desc">全品牌汽车销售总量</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-label">在售车型总数</div>
+                    <div class="stat-value">{{ total_cars|default:0 }}</div>
+                    <div class="stat-desc">数据库有效车型数量</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-label">销量冠军车型</div>
+                    <div class="stat-value">{{ top_car_name|default:'暂无' }}</div>
+                    <div class="stat-desc">{{ top_car_sales|default:0 }} 台</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-label">新能源销量占比</div>
+                    <div class="stat-value">{{ new_energy_rate|default:'0%' }}</div>
+                    <div class="stat-desc">新能源汽车销量占比</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">品牌销量排行</h5>
+                        <div id="currentViewInfo">请悬浮查看品牌</div>
+                    </div>
+                    <p class="card-subtitle-uniform">展示销量最高的汽车品牌及其销量数据</p>
+                    <div id="brandScrollContainer" class="mt-2 flex-grow-1" style="max-height: 350px; overflow-y: auto; overflow-x: hidden; width: 100%; box-sizing: border-box;">
+                        {% for item in brand_sales %}
+                        <div class="brand-rank-item"
+                             data-name="{{ item.brand }}"
+                             data-rank="{{ forloop.counter }}"
+                             data-logo="{{ item.brand_img }}"
+                             onmouseenter="handleBrandRowHover(this)"
+                             onmouseleave="handleBrandRowLeave()">
+                            <div class="brand-rank-num">{{ forloop.counter }}</div>
+                            <img src="{{ item.brand_img }}"
+                                 class="brand-rank-img"
+                                 alt="{{ item.brand }}"
+                                 onmouseenter="handleLogoHover(this)"
+                                 onmouseleave="handleLogoLeave()">
+                            <div class="brand-rank-info">
+                                <div class="brand-rank-name">{{ item.brand }}</div>
+                                <div class="brand-rank-desc">汽车品牌</div>
+                            </div>
+                            <div>
+                                <div class="brand-rank-sales">{{ item.sales }} 台</div>
+                                <div class="brand-rank-rate">占比 {{ item.rate }}%</div>
+                            </div>
+                            <div class="brand-img-preview"></div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-muted py-5">暂无品牌数据</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">车型销量排行</h5>
+                        <div id="currentCarViewInfo">请悬浮查看车型</div>
+                    </div>
+                    <p class="card-subtitle-uniform">销量最高的十款车型数据</p>
+                    <div id="topCarChart" class="flex-grow-1" style="width: 100%; height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+
+        {% if show_forecast %}
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-0">TOP10 品牌销量预测</h5>
+                    <p class="card-subtitle-uniform">按品牌汇总销量 → 预测未来半年整体趋势</p>
+                    <div class="mb-3">
+                        <select class="form-select form-select-sm" id="brandSelect" onchange="updateBrandForecastChart()" style="background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);">
+                            {% for brand in brand_forecast.brands %}
+                            <option value="{{ forloop.counter0 }}">{{ brand.brand_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="brandForecastChart" class="flex-grow-1" style="width: 100%; height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-0">TOP10 车型销量预测</h5>
+                    <p class="card-subtitle-uniform">基于过去半年真实销量 → 预测未来6个月趋势</p>
+                    <div class="mb-3">
+                        <select class="form-select form-select-sm" id="carSelect" onchange="updateForecastChart()" style="background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);">
+                            {% for car in sales_forecast.cars %}
+                            <option value="{{ forloop.counter0 }}">{{ car.car_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="salesForecastChart" class="flex-grow-1" style="width: 100%; height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-0">新能源vs传统能源对比</h5>
+                    <p class="card-subtitle-uniform">新能源包括纯电动、插电混动、增程式和油电混合</p>
+                    <div class="mb-3">
+                        <select class="form-select form-select-sm" id="energyComparisonType" onchange="updateEnergyComparison()" style="background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);">
+                            <option value="counts">车型数量对比</option>
+                            <option value="sales">销量对比</option>
+                        </select>
+                    </div>
+                    <div id="energyComparisonChart" class="flex-grow-1" style="width: 100%; height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-0">能源类型销量分析</h5>
+                    <p class="card-subtitle-uniform">纯电动、插电混动、汽油、柴油等能源市场表现</p>
+                    <div id="energySalesChart" class="flex-grow-1" style="width: 100%; height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-12 col-md-12 col-sm-12 mb-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 id="bubbleChartTitle" class="card-title mb-0">价格-销量气泡图</h5>
+                    <p class="card-subtitle-uniform">X轴为价格(万元)，Y轴为销量，气泡大小代表市场份额占比，颜色代表能源类型(仅展示部分热门车型)</p>
+                    <div id="bubbleChart" class="flex-grow-1" style="width: 100%; height: 450px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block echarts %}
+<script>
+function getCurrentTheme() {
+    return document.documentElement.getAttribute('data-theme') || 'light';
+}
+function getChartThemeConfig() {
+    const isDark = getCurrentTheme() === 'dark';
+    return {
+        textColor: isDark ? '#f1f5f9' : '#1e293b',
+        axisColor: isDark ? '#475569' : '#e2e8f0',
+        tooltipBg: isDark ? '#1e293b' : '#ffffff',
+        tooltipBorder: isDark ? '#334155' : '#eee',
+        splitColor: isDark ? '#334155' : '#eee'
+    };
+}
+
+const premiumColors = [
+    '#2563eb', '#3b82f6', '#0ea5e9', '#6366f1', '#8b5cf6',
+    '#10b981', '#f59e0b', '#ef4444', '#64748b', '#06b6d4'
+];
+const bizGradientColors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
+
+const luxuryPieColors = [
+    new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#4361EE' }, { offset: 1, color: '#3A0CA3' }]),
+    new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#F5F7FA' }, { offset: 1, color: '#CBD5E1' }])
+];
+const luxuryBarColors = [
+    new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#4361EE' }, { offset: 1, color: '#3B82F6' }]),
+    new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#6366F1' }, { offset: 1, color: '#8B5CF6' }]),
+    new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#10B981' }, { offset: 1, color: '#059669' }]),
+    new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#F59E0B' }, { offset: 1, color: '#D97706' }]),
+    new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#EF4444' }, { offset: 1, color: '#DC2626' }]),
+    new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#8B5CF6' }, { offset: 1, color: '#7C3AED' }]),
+    new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#EC4899' }, { offset: 1, color: '#DB2777' }]),
+];
+
+let currentPreview = null;
+function handleBrandRowHover(rowEl) {
+    const brandName = rowEl.getAttribute('data-name');
+    const brandRank = rowEl.getAttribute('data-rank');
+    const logoUrl = rowEl.getAttribute('data-logo');
+    document.getElementById('currentViewInfo').innerHTML = `
+        正在查看品牌：${brandName}
+        <img src="${logoUrl}" alt="logo">
+        <span class="rank">排名：${brandRank}</span>
+    `;
+}
+function handleBrandRowLeave() {}
+function handleLogoHover(imgEl) {
+    const rowEl = imgEl.closest('.brand-rank-item');
+    const logoUrl = rowEl.getAttribute('data-logo');
+    if (currentPreview) currentPreview.classList.remove('show');
+    const preview = rowEl.querySelector('.brand-img-preview');
+    preview.innerHTML = `<img src="${logoUrl}" alt="品牌logo">`;
+    setTimeout(() => preview.classList.add('show'), 10);
+    currentPreview = preview;
+}
+function handleLogoLeave() {
+    if (currentPreview) currentPreview.classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const citySelect = document.getElementById('citySelect');
+    const monthSelect = document.getElementById('monthSelect');
+
+    updateMonthSelectStatus();
+
+    citySelect.addEventListener('change', function() {
+        updateMonthSelectStatus();
+        submitFilter();
+    });
+
+    monthSelect.addEventListener('change', function() {
+        submitFilter();
+    });
+
+    function updateMonthSelectStatus() {
+        if (citySelect.value !== 'all') {
+            monthSelect.value = '0';
+            monthSelect.disabled = true;
+            monthSelect.style.backgroundColor = 'var(--biz-light)';
+        } else {
+            monthSelect.disabled = false;
+            monthSelect.style.backgroundColor = 'var(--biz-card-bg)';
+        }
+    }
+
+    function submitFilter() {
+        const city = citySelect.value;
+        const month = monthSelect.value;
+        window.location.href = `?city=${city}&month=${month}`;
+    }
+
+    const container = document.getElementById('brandScrollContainer');
+    if (container) {
+        container.addEventListener('scroll', () => {
+            if (currentPreview) currentPreview.classList.remove('show');
+        });
+    }
+
+    initAllCharts();
+
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                refreshAllCharts();
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+});
+
+let topCarChart, energyComparisonChart, energySalesChart;
+let salesForecastChart, brandForecastChart;
+let bubbleChart; 
+
+function initAllCharts() {
+    renderTopCarChart();
+    renderEnergyComparison();
+    renderEnergySales();
+    renderBubbleChart();
+    {% if show_forecast %}
+    renderSalesForecast();
+    renderBrandForecast();
+    {% endif %}
+}
+
+function refreshAllCharts() {
+    renderTopCarChart();
+    renderEnergyComparison();
+    renderEnergySales();
+    renderBubbleChart();
+    {% if show_forecast %}
+    renderSalesForecast();
+    renderBrandForecast();
+    {% endif %}
+}
+
+function renderTopCarChart() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('topCarChart');
+    if(!dom) return;
+    if(topCarChart) topCarChart.dispose();
+    topCarChart = echarts.init(dom);
+
+    const carDataList = [
+        {% for car in top_car_list %}
+        { name: "{{ car.car_name }}", img: "{{ car.car_img }}", rank: {{ forloop.counter }} },
+        {% endfor %}
+    ];
+    const topCarNames = [];
+    const topCarSales = [];
+    {% for car in top_car_list %}
+    topCarNames.push("{{ car.car_name }}");
+    topCarSales.push({{ car.sale_volume }});
+    {% endfor %}
+
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            textStyle: { color: theme.textColor }
+        },
+        legend: {
+            data: ['销量'],
+            textStyle: { color: theme.textColor },
+            top:0, right:20
+        },
+        grid: { left: '2%', right: '8%', top: '9%', bottom: '0%', containLabel: true },
+        xAxis: {
+            type: 'value',
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: { color: theme.textColor },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        yAxis: {
+            type: 'category',
+            data: topCarNames,
+            nameTextStyle: { fontSize: 12, color: theme.textColor },
+            inverse: true,
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: { color: theme.textColor }
+        },
+        series: [{
+            name: '销量',
+            type: 'bar',
+            data: topCarSales,
+            itemStyle: {
+                color: (p) => premiumColors[p.dataIndex % premiumColors.length],
+                borderRadius: 6
+            }
+        }]
+    };
+
+    option.tooltip.formatter = function(params) {
+        const index = params[0].dataIndex;
+        const car = carDataList[index];
+        document.getElementById('currentCarViewInfo').innerHTML = `
+            正在查看：${car.name}
+            <img src="${car.img}" alt="车型图">
+            <span class="rank">排名：${car.rank}</span>
+        `;
+        return `${car.name}<br/>销量：${params[0].data} 台`;
+    };
+
+    topCarChart.setOption(option);
+}
+
+function renderEnergyComparison() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('energyComparisonChart');
+    if(!dom) return;
+    if(energyComparisonChart) energyComparisonChart.dispose();
+    energyComparisonChart = echarts.init(dom);
+
+    const data = {
+        counts: [
+            { value: {{ energy_comparison.counts.values.0 }}, name: '{{ energy_comparison.counts.categories.0 }}' },
+            { value: {{ energy_comparison.counts.values.1 }}, name: '{{ energy_comparison.counts.categories.1 }}' }
+        ],
+        sales: [
+            { value: {{ energy_comparison.sales.values.0 }}, name: '{{ energy_comparison.sales.categories.0 }}' },
+            { value: {{ energy_comparison.sales.values.1 }}, name: '{{ energy_comparison.sales.categories.1 }}' }
+        ]
+    };
+
+    window.updateEnergyComparison = function() {
+        var type = document.getElementById('energyComparisonType').value;
+        energyComparisonChart.setOption({
+            tooltip: {
+                trigger: 'item',
+                backgroundColor: theme.tooltipBg,
+                borderColor: theme.tooltipBorder,
+                textStyle: { color: theme.textColor },
+                formatter: '{b}<br/>{c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left',
+                textStyle: { color: theme.textColor }
+            },
+            series: [{
+                type: 'pie',
+                radius: ['42%', '72%'],
+                data: data[type],
+                itemStyle: {
+                    borderRadius: 12,
+                    borderColor: 'transparent',
+                    borderWidth: 0,
+                    color: (params) => luxuryPieColors[params.dataIndex]
+                }
+            }]
+        }, true);
+    };
+    updateEnergyComparison();
+}
+
+function renderEnergySales() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('energySalesChart');
+    if(!dom) return;
+    if(energySalesChart) energySalesChart.dispose();
+    energySalesChart = echarts.init(dom);
+
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            textStyle: { color: theme.textColor }
+        },
+        legend: {
+            data: ['销量'],
+            textStyle: { color: theme.textColor },
+            top: 0
+        },
+        grid: { left: '4%', right: '4%', bottom: '16%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: {{ energy_sales.energy_types|safe }},
+            axisLabel: { color: theme.textColor, rotate: 30 },
+            axisLine: { lineStyle: { color: theme.axisColor } }
+        },
+        yAxis: {
+            type: 'value',
+            name: '销量（台）',
+            nameTextStyle: { fontSize: 12, color: theme.textColor },
+            axisLabel: { color: theme.textColor },
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        series: [{
+            name: '销量',
+            data: {{ energy_sales.sales|safe }},
+            type: 'bar',
+            barWidth: '58%',
+            itemStyle: {
+                borderRadius: 8,
+                color: (params) => luxuryBarColors[params.dataIndex % luxuryBarColors.length]
+            }
+        }]
+    };
+    energySalesChart.setOption(option);
+}
+
+function renderBubbleChart() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('bubbleChart');
+    if (!dom) return;
+    if (bubbleChart) bubbleChart.dispose();
+    bubbleChart = echarts.init(dom);
+
+    const bubbleData = {{ bubble_chart_data.bubble_data|safe }};
+    
+    const seriesData = bubbleData.map(item => item.value);
+
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            textStyle: { color: theme.textColor },
+            formatter: function(params) {
+                const data = bubbleData[params.dataIndex];
+                return `
+                    <strong>${data.name}</strong><br/>
+                    品牌: ${data.brand}<br/>
+                    价格: ${data.price} 万元<br/>
+                    销量: ${data.sales.toLocaleString()} 台<br/>
+                    能源类型: ${data.energy_type}
+                `;
+            }
+        },
+        xAxis: {
+            name: '价格 (万元)',
+            nameTextStyle: { color: theme.textColor },
+            type: 'value',
+            axisLabel: { color: theme.textColor },
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        yAxis: {
+            name: '销量 (台)',
+            nameTextStyle: { color: theme.textColor },
+            type: 'value',
+            axisLabel: { color: theme.textColor },
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        grid: {
+            left: '3%',
+            right: '8%',
+            top: '10%',
+            bottom: '10%',
+            containLabel: true
+        },
+        series: [{
+            name: '车型',
+            type: 'scatter',
+            data: seriesData,
+            symbolSize: function(val) {
+                return val[2];
+            },
+            label: {
+                show: false
+            },
+            itemStyle: {
+                color: function(params) {
+                    return bubbleData[params.dataIndex].itemStyle.color;
+                },
+                shadowBlur: 8,
+                shadowColor: 'rgba(0,0,0,0.2)',
+                opacity: 0.85,
+                borderColor: '#fff',
+                borderWidth: 1.5
+            },
+            emphasis: {
+                scale: 1.2,
+                label: {
+                    show: true,
+                    formatter: function(params) {
+                        return bubbleData[params.dataIndex].name;
+                    },
+                    position: 'top',
+                    color: theme.textColor,
+                    fontWeight: 'bold'
+                }
+            }
+        }]
+    };
+
+    bubbleChart.setOption(option);
+}
+
+{% if show_forecast %}
+function renderSalesForecast() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('salesForecastChart');
+    if(!dom) return;
+    if(salesForecastChart) salesForecastChart.dispose();
+    salesForecastChart = echarts.init(dom);
+    const forecastData = {{ sales_forecast|safe }};
+
+    window.updateForecastChart = function() {
+        var idx = document.getElementById('carSelect').value;
+        var car = forecastData.cars[idx];
+        var xData = forecastData.history_months.concat(forecastData.future_months);
+        var seriesData = car.history_sales.concat(car.forecast_sales);
+        salesForecastChart.setOption({
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: theme.tooltipBg,
+                borderColor: theme.tooltipBorder,
+                textStyle: { color: theme.textColor }
+            },
+            legend: { data: ['销量趋势'], textStyle: { color: theme.textColor } },
+            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: xData,
+                axisLabel: { color: theme.textColor, rotate: 30 },
+                axisLine: { lineStyle: { color: theme.axisColor } }
+            },
+            yAxis: {
+                type: 'value',
+                name: '销量（台）',
+                nameTextStyle: { fontSize: 12, color: theme.textColor },
+                axisLabel: { color: theme.textColor },
+                axisLine: { lineStyle: { color: theme.axisColor } },
+                splitLine: { lineStyle: { color: theme.splitColor } }
+            },
+            series: [{
+                name: '销量趋势',
+                type: 'line',
+                smooth: true,
+                data: seriesData,
+                symbol: 'circle',
+                symbolSize: 8,
+                lineStyle: { width: 3, color: '#22c55e' },
+                itemStyle: { color: '#16a34a', borderWidth: 2, borderColor: '#fff' },
+                areaStyle: { color: 'rgba(34, 197, 94, 0.15)' }
+            }]
+        });
+    };
+    updateForecastChart();
+}
+
+function renderBrandForecast() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('brandForecastChart');
+    if(!dom) return;
+    if(brandForecastChart) brandForecastChart.dispose();
+    brandForecastChart = echarts.init(dom);
+    const brandForecastData = {{ brand_forecast|safe }};
+
+    window.updateBrandForecastChart = function() {
+        var idx = document.getElementById('brandSelect').value;
+        var brand = brandForecastData.brands[idx];
+        var xData = brandForecastData.history_months.concat(brandForecastData.future_months);
+        var seriesData = brand.history_sales.concat(brand.forecast_sales);
+        brandForecastChart.setOption({
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: theme.tooltipBg,
+                borderColor: theme.tooltipBorder,
+                textStyle: { color: theme.textColor }
+            },
+            legend: { data: ['品牌销量趋势'], textStyle: { color: theme.textColor } },
+            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: xData,
+                axisLabel: { color: theme.textColor, rotate: 30 },
+                axisLine: { lineStyle: { color: theme.axisColor } }
+            },
+            yAxis: {
+                type: 'value',
+                name: '销量（台）',
+                nameTextStyle: { fontSize: 12, color: theme.textColor },
+                axisLabel: { color: theme.textColor },
+                axisLine: { lineStyle: { color: theme.axisColor } },
+                splitLine: { lineStyle: { color: theme.splitColor } }
+            },
+            series: [{
+                name: '品牌销量趋势',
+                type: 'line',
+                smooth: true,
+                data: seriesData,
+                symbol: 'circle',
+                symbolSize: 8,
+                lineStyle: { width: 3, color: '#6366f1' },
+                itemStyle: { color: '#4f46e5', borderWidth: 2, borderColor: '#fff' },
+                areaStyle: { color: 'rgba(79, 70, 229, 0.15)' }
+            }]
+        });
+    };
+    updateBrandForecastChart();
+}
+{% endif %}
+
+window.addEventListener('resize', ()=>{
+    if(topCarChart) topCarChart.resize();
+    if(energyComparisonChart) energyComparisonChart.resize();
+    if(energySalesChart) energySalesChart.resize();
+    if(bubbleChart) bubbleChart.resize();
+    {% if show_forecast %}
+    if(salesForecastChart) salesForecastChart.resize();
+    if(brandForecastChart) brandForecastChart.resize();
+    {% endif %}
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const allowHelp = "{{ selected_city }}" === "all" && "{{ selected_month }}" === "0";
+    const helpBtn = document.querySelector('#showHelpBtn');
+
+    if (helpBtn) {
+        if (!allowHelp) {
+            helpBtn.disabled = true;
+            helpBtn.style.pointerEvents = 'none';
+            helpBtn.style.opacity = '0.5';
+            helpBtn.title = "⚠️ 帮助功能仅在【全国 + 最新月份】下可用";
+            helpSteps = [];
+        } else {
+            helpBtn.disabled = false;
+            helpBtn.style.pointerEvents = 'auto';
+            helpBtn.style.opacity = '1';
+            helpBtn.removeAttribute('disabled');
+            helpBtn.title = "查看页面帮助";
+
+            helpSteps = [
+                {
+                    selector: '.pagetitle h1',
+                    text: '这里是销量分析页面，展示汽车销售核心数据与趋势。'
+                },
+                {
+                    selector: '#citySelect, #monthSelect',
+                    text: '切换城市与月份，查看不同维度的销量数据。'
+                },
+                {
+                    selector: '.stat-card',
+                    text: '核心数据概览：总销量、在售车型、销量冠军、新能源占比。'
+                },
+                {
+                    selector: '.card:has(#brandScrollContainer)',
+                    text: '品牌销量排行：悬浮可查看品牌 Logo 与排名，直观展示头部品牌销量。'
+                },
+                {
+                    selector: '.card:has(#topCarChart)',
+                    text: '车型销量排行：展示销量最高的十款车型，了解市场热门车型。'
+                },
+                {% if show_forecast %}
+                {
+                    selector: '.card:has(#brandForecastChart)',
+                    text: '品牌销量预测：基于历史数据，预测未来半年销量趋势。'
+                },
+                {
+                    selector: '.card:has(#salesForecastChart)',
+                    text: '车型销量预测：单车型未来半年销量走势预测。'
+                },
+                {% endif %}
+                {
+                    selector: '.card:has(#energyComparisonChart)',
+                    text: '新能源 vs 传统能源对比：可切换按车型数量/销量查看。'
+                },
+                {
+                    selector: '.card:has(#energySalesChart)',
+                    text: '能源类型销量分析：纯电、混动、汽油等能源类型市场表现。'
+                },
+                {
+                    selector: '#bubbleChartTitle',
+                    text: '价格-销量气泡图：X轴为价格，Y轴为销量，气泡大小代表市场份额，颜色代表能源类型。点击图例可筛选特定能源类型的车型。'
+                },
+                {
+                    selector: '#exportSalesReportBtn',
+                    text: '导出销量分析报告：一键导出当前筛选条件的完整报告。'
+                },
+            ];
+        }
+    }
+});
+</script>
+{% endblock %}

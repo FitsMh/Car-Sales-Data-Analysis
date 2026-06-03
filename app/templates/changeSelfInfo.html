@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    修改个人信息
+{% endblock %}
+
+{% block content %}
+    <div class="pagetitle" style="display: flex;align-items: center">
+        <div style="margin-right: auto">
+            <h1 style="color: var(--biz-dark) !important; font-weight: 600;">个人信息</h1>
+            <nav>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'changeSelfInfo' %}" style="color: var(--biz-normal) !important;">个人信息</a></li>
+                    <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">修改个人信息页面</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <style>
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15) !important;
+        }
+        [data-theme="dark"] .card:hover {
+            box-shadow: 0 4px 16px rgba(96, 165, 250, 0.15) !important;
+        }
+
+        .card-title {
+            color: var(--biz-dark) !important;
+            font-weight: 600;
+        }
+
+        .col-form-label {
+            text-align: right;
+            color: var(--biz-dark) !important;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: var(--biz-normal) !important;
+            border-color: var(--biz-normal) !important;
+        }
+        .btn-primary:hover {
+            background-color: var(--biz-dark) !important;
+            border-color: var(--biz-dark) !important;
+        }
+
+        .form-control,
+        .form-select {
+            background-color: #fff !important;
+            color: var(--biz-text) !important;
+            border: 1px solid var(--biz-border) !important;
+        }
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: #334155 !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--biz-normal) !important;
+            box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.2) !important;
+        }
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+        }
+
+        .form-control:disabled {
+            background-color: var(--biz-gray) !important;
+            color: var(--biz-text) !important;
+            opacity: 0.8 !important;
+        }
+        [data-theme="dark"] .form-control:disabled {
+            background-color: #1e293b !important;
+            color: #cbd5e1 !important;
+        }
+
+        img[style*="border"] {
+            border-color: var(--biz-normal) !important;
+            border-radius: 8px !important;
+            background: #fff;
+        }
+        [data-theme="dark"] img[style*="border"] {
+            background: transparent;
+            border-color: #475569 !important;
+        }
+
+        .breadcrumb-item a {
+            color: var(--biz-normal) !important;
+            transition: color 0.3s ease;
+        }
+        .breadcrumb-item a:hover {
+            color: var(--biz-dark) !important;
+        }
+        .breadcrumb-item.active {
+            color: var(--biz-dark) !important;
+            font-weight: 500;
+        }
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: var(--biz-normal) !important;
+        }
+    </style>
+
+    <section class="section dashboard">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title help-target-edit-profile">修改个人信息</h5>
+
+                        <form action="{% url 'changeSelfInfo' %}" method="post" enctype="multipart/form-data">
+                            <div class="activity">
+                                <div class="row mb-3" style="display: flex">
+                                    <label for="username" class="col-sm-1 col-form-label">用户名:</label>
+                                    <div class="col-sm-5">
+                                        <input type="text" id="username" name="username" disabled
+                                               value="{{ userInfo.username }}"
+                                               class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label for="address" class="col-sm-1 col-form-label">地址:</label>
+                                    <div class="col-sm-5">
+                                        <input type="text" id="address" name="address" value="{{ userInfo.address }}"
+                                               class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label for="sex" class="col-sm-1 col-form-label">性别:</label>
+                                    <div class="col-sm-5">
+                                        <select class="form-select" id="sex" name="sex" aria-label="Default select example">
+                                            <option {% if userInfo.sex == '' %} selected="selected" {% endif %} value="">--请选择--</option>
+                                            <option {% if userInfo.sex == '男' %} selected="selected" {% endif %} value="男">男</option>
+                                            <option {% if userInfo.sex == '女' %} selected="selected" {% endif %} value="女">女</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label for="textarea" class="col-sm-1 col-form-label">个人简介:</label>
+                                    <div class="col-sm-5">
+                                        <textarea class="form-control" id="textarea" name="textarea" style="height: 100px">{{ userInfo.textarea }}</textarea>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label for="avatar" class="col-sm-1 col-form-label">头像上传:</label>
+                                    <div class="col-sm-5">
+                                        <img style="width:100px; border: 1px solid #ddd; padding: 5px;" src="/media/{{ userInfo.avatar }}" alt="">
+                                        <br>
+                                        <input type="file" id="avatar" name="avatar">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label class="col-sm-1 col-form-label"></label>
+                                    <div class="col-sm-5">
+                                        <button type="submit" class="btn btn-primary">提交</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block echarts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const helpBtn = document.querySelector('#showHelpBtn');
+    if (helpBtn) {
+        helpBtn.disabled = false;
+        helpBtn.style.pointerEvents = 'auto';
+        helpBtn.style.opacity = '1';
+        helpBtn.title = "查看页面帮助";
+
+        helpSteps = [
+            {
+                selector: '.pagetitle h1',
+                text: '这里是个人信息修改页面，你可以更新头像、地址、简介等个人资料。'
+            },
+            {
+                selector: '.card:has(.help-target-edit-profile)',
+                text: '修改个人信息表单：你可以在这里编辑并更新你的所有个人资料。'
+            },
+            {
+                selector: '[name="address"]',
+                text: '修改你的收货地址或常住地址。'
+            },
+            {
+                selector: '[name="sex"]',
+                text: '选择你的性别，用于个性化推荐更精准。'
+            },
+            {
+                selector: '[name="textarea"]',
+                text: '填写个人简介，让别人更了解你。'
+            },
+            {
+                selector: '[name="avatar"]',
+                text: '点击上传新头像，支持常见图片格式。'
+            },
+            {
+                selector: '.btn-primary',
+                text: '完成修改后，点击提交保存所有更新。'
+            }
+        ];
+    }
+});
+</script>
+{% endblock %}

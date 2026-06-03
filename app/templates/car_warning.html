@@ -1,0 +1,819 @@
+{% extends 'base.html' %}
+{% block title %}汽车预警监控{% endblock %}
+
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">汽车预警监控</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" style="color: var(--biz-normal) !important;">首页</a></li>
+                <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">预警列表</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<style>
+/* ----- 基础卡片兼容 ----- */
+.card {
+    transition: all 0.3s ease;
+    background: var(--biz-card-bg) !important;
+    color: var(--biz-card-text) !important;
+    border: 1px solid var(--biz-border) !important;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+}
+.card-title {
+    color: var(--biz-dark) !important;
+    font-weight: 600;
+}
+.breadcrumb-item a {
+    color: var(--biz-normal) !important;
+    transition: color 0.3s ease;
+}
+.breadcrumb-item a:hover {
+    color: var(--biz-dark) !important;
+}
+.breadcrumb-item.active {
+    color: var(--biz-dark) !important;
+    font-weight: 500;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--biz-normal) !important;
+}
+
+/* ----- 通用按钮样式 ----- */
+.btn-success {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+}
+.btn-success:hover {
+    background-color: var(--biz-dark) !important;
+    border-color: var(--biz-dark) !important;
+}
+
+/* ----- 表格 ----- */
+.table {
+    color: var(--biz-text) !important;
+    border-color: var(--biz-border) !important;
+}
+.table-bordered > :not(caption) > * > * {
+    border-color: var(--biz-border) !important;
+}
+.table-hover > tbody > tr:hover {
+    background-color: var(--biz-light) !important;
+}
+.table-danger {
+    background-color: rgba(37, 99, 235, 0.1) !important;
+    color: #1a365d !important;
+    font-weight: 600;
+    border-color: var(--biz-normal) !important;
+}
+[data-theme="dark"] .table-danger {
+    background-color: rgba(96, 165, 250, 0.15) !important;
+    color: #f1f5f9 !important;
+}
+.bg-danger { background-color: #dc2626 !important; }
+.bg-warning { background-color: #f59e0b !important; color: #fff !important; }
+.alert-success {
+    background-color: rgba(5, 150, 105, 0.1) !important;
+    border-color: #059669 !important;
+    color: #065f46 !important;
+}
+[data-theme="dark"] .alert-success {
+    background-color: #064e3b !important;
+    border-color: #059669 !important;
+    color: #d1fae5 !important;
+}
+ul li { color: var(--biz-text) !important; }
+.text-warning { color: #f59e0b !important; }
+.text-danger { color: #dc2626 !important; }
+
+/* ===== 规则配置切换按钮 ===== */
+.warning-config-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--biz-border);
+    background: var(--biz-card-bg);
+    color: var(--biz-text);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+.warning-config-toggle:hover {
+    background: var(--biz-light);
+    border-color: var(--biz-normal);
+    color: var(--biz-normal);
+}
+[data-theme="dark"] .warning-config-toggle:hover {
+    background: #334155;
+}
+
+/* ===== 配置面板折叠 ===== */
+.warning-config-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease, margin 0.3s ease;
+    opacity: 0;
+    margin-top: 0;
+}
+.warning-config-panel.open {
+    max-height: 600px;
+    opacity: 1;
+    margin-top: 16px;
+}
+.config-inner {
+    background: var(--biz-light);
+    border: 1px solid var(--biz-border);
+    border-radius: 12px;
+    padding: 20px 24px;
+}
+[data-theme="dark"] .config-inner {
+    background: #0f172a;
+}
+.config-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--biz-dark);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+[data-theme="dark"] .config-title { color: #f1f5f9; }
+
+.config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+}
+@media (max-width: 768px) {
+    .config-grid { grid-template-columns: 1fr; }
+}
+
+.config-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.config-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.config-item-header label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--biz-text);
+    margin: 0;
+}
+.config-value-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: var(--biz-normal);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+/* ===== 自定义滑块 ===== */
+input[type="range"].config-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--biz-border);
+    outline: none;
+    transition: background 0.3s ease;
+    cursor: pointer;
+}
+input[type="range"].config-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--biz-normal), var(--biz-dark));
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    transition: all 0.2s ease;
+    border: 2px solid #fff;
+}
+input[type="range"].config-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 12px rgba(37, 99, 235, 0.4);
+}
+input[type="range"].config-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--biz-normal), var(--biz-dark));
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    border: 2px solid #fff;
+}
+[data-theme="dark"] input[type="range"].config-slider { background: #475569; }
+[data-theme="dark"] input[type="range"].config-slider::-webkit-slider-thumb { border-color: #1e293b; }
+[data-theme="dark"] input[type="range"].config-slider::-moz-range-thumb { border-color: #1e293b; }
+
+/* ===== 配置面板按钮 ===== */
+.config-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--biz-border);
+}
+.btn-config-apply {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, var(--biz-normal), var(--biz-dark));
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-config-apply:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+.btn-config-apply:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-config-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--biz-border);
+    background: transparent;
+    color: var(--biz-text);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-config-reset:hover {
+    background: var(--biz-light);
+    border-color: var(--biz-normal);
+    color: var(--biz-normal);
+}
+[data-theme="dark"] .btn-config-reset:hover { background: #334155; }
+
+/* ===== 下载按钮 ===== */
+.download-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--biz-border);
+    background: var(--biz-card-bg);
+    color: var(--biz-text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+.btn-download:hover {
+    background: var(--biz-light);
+    border-color: var(--biz-normal);
+    color: var(--biz-normal);
+    transform: translateY(-2px);
+}
+[data-theme="dark"] .btn-download:hover { background: #334155; }
+.btn-download-excel {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: #fff !important;
+    border-color: #059669;
+}
+.btn-download-excel:hover {
+    background: linear-gradient(135deg, #047857, #065f46) !important;
+    border-color: #047857 !important;
+    color: #fff !important;
+}
+.btn-download-pdf {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: #fff !important;
+    border-color: #dc2626;
+}
+.btn-download-pdf:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b) !important;
+    border-color: #b91c1c !important;
+    color: #fff !important;
+}
+
+/* ===== 规则值高亮 ===== */
+.rule-value {
+    display: inline-block;
+    padding: 1px 10px;
+    border-radius: 10px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--biz-normal);
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+[data-theme="dark"] .rule-value { background: rgba(96, 165, 250, 0.15); }
+
+/* ===== 加载动画 ===== */
+.config-loading {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--biz-normal);
+}
+.config-loading.show { display: inline-flex; }
+.config-loading .spinner-sm {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(37, 99, 235, 0.2);
+    border-top-color: var(--biz-normal);
+    border-radius: 50%;
+    animation: configSpin 0.8s linear infinite;
+}
+@keyframes configSpin { to { transform: rotate(360deg); } }
+
+/* ===== 活跃规则徽章 ===== */
+.active-rule-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--biz-normal);
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid rgba(37, 99, 235, 0.15);
+}
+[data-theme="dark"] .active-rule-badge {
+    background: rgba(96, 165, 250, 0.1);
+    border-color: rgba(96, 165, 250, 0.2);
+}
+
+/* ===== 表格淡入动画 ===== */
+@keyframes warningRowIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.warning-table tbody tr {
+    animation: warningRowIn 0.3s ease forwards;
+}
+.warning-table tbody tr:nth-child(1) { animation-delay: 0s; }
+.warning-table tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.warning-table tbody tr:nth-child(3) { animation-delay: 0.06s; }
+.warning-table tbody tr:nth-child(4) { animation-delay: 0.09s; }
+.warning-table tbody tr:nth-child(5) { animation-delay: 0.12s; }
+.warning-table tbody tr:nth-child(6) { animation-delay: 0.15s; }
+.warning-table tbody tr:nth-child(7) { animation-delay: 0.18s; }
+.warning-table tbody tr:nth-child(8) { animation-delay: 0.21s; }
+.warning-table tbody tr:nth-child(9) { animation-delay: 0.24s; }
+</style>
+
+<section class="section">
+    <!-- ===== 卡片1：预警规则说明 ===== -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center gap-2 flex-wrap">
+                        <span>🚨 预警规则说明</span>
+                        {% if price_low_val != 0.7 or price_high_val != 1.3 or sale_ratio_val != 0.5 or sale_critical_val != 0.2 %}
+                        <span class="active-rule-badge">
+                            <i class="bi bi-gear"></i>
+                            已自定义
+                        </span>
+                        {% endif %}
+                    </h5>
+
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <ul class="mb-0" style="flex:1; min-width:200px;">
+                            <li>价格 ＜ 同级别均价的 <span class="rule-value" id="rulePriceLowDisplay">{{ PRICE_WARNING_LOW }}%</span> → 价格异常偏低</li>
+                            <li>价格 ＞ 同级别均价的 <span class="rule-value" id="rulePriceHighDisplay">+{{ PRICE_WARNING_HIGH }}%</span> → 价格虚高</li>
+                            <li>销量 ＜ 同级别中位数销量的 <span class="rule-value" id="ruleSaleRatioDisplay">{{ SALE_WARNING_RATIO }}%</span> → 销量偏低</li>
+                            <li>销量 ＜ 同级别中位数销量的 <span class="rule-value" id="ruleSaleCriticalDisplay">{{ SALE_CRITICAL_RATIO }}%</span> → 销量严重偏低</li>
+                            <li>同级别车型少于3台，不参与预警计算</li>
+                            <li>入门级(10万以下)、经济型(10-15万)、家用型(15-20万)、中端型(20-30万)、中高端(30-50万)、豪华型(50万以上)</li>
+                        </ul>
+                        <button class="warning-config-toggle" id="configToggleBtn">
+                            <i class="bi bi-gear-wide-connected"></i>
+                            <span id="configToggleText">规则配置</span>
+                            <i class="bi bi-chevron-down" id="configToggleIcon" style="transition: transform 0.3s ease;"></i>
+                        </button>
+                    </div>
+
+                    <!-- ===== 规则配置面板（可折叠） ===== -->
+                    <div class="warning-config-panel" id="configPanel">
+                        <div class="config-inner">
+                            <div class="config-title">
+                                <i class="bi bi-sliders"></i>
+                                自定义预警阈值
+                            </div>
+                            <div class="config-grid">
+                                <!-- 价格偏低 -->
+                                <div class="config-item">
+                                    <div class="config-item-header">
+                                        <label>📉 价格偏低阈值</label>
+                                        <span class="config-value-badge" id="valPriceLow">-30%</span>
+                                    </div>
+                                    <input type="range" class="config-slider" id="sliderPriceLow"
+                                           min="0.1" max="0.9" step="0.01"
+                                           value="{{ price_low_val }}">
+                                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--biz-text);opacity:0.6;">
+                                        <span>偏低 10%</span>
+                                        <span>90%</span>
+                                    </div>
+                                </div>
+                                <!-- 价格虚高 -->
+                                <div class="config-item">
+                                    <div class="config-item-header">
+                                        <label>📈 价格虚高阈值</label>
+                                        <span class="config-value-badge" id="valPriceHigh">+30%</span>
+                                    </div>
+                                    <input type="range" class="config-slider" id="sliderPriceHigh"
+                                           min="1.05" max="3.0" step="0.05"
+                                           value="{{ price_high_val }}">
+                                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--biz-text);opacity:0.6;">
+                                        <span>偏高 5%</span>
+                                        <span>200%</span>
+                                    </div>
+                                </div>
+                                <!-- 销量偏低 -->
+                                <div class="config-item">
+                                    <div class="config-item-header">
+                                        <label>📊 销量偏低阈值</label>
+                                        <span class="config-value-badge" id="valSaleRatio">-50%</span>
+                                    </div>
+                                    <input type="range" class="config-slider" id="sliderSaleRatio"
+                                           min="0.05" max="0.95" step="0.05"
+                                           value="{{ sale_ratio_val }}">
+                                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--biz-text);opacity:0.6;">
+                                        <span>偏低 5%</span>
+                                        <span>95%</span>
+                                    </div>
+                                </div>
+                                <!-- 销量严重偏低 -->
+                                <div class="config-item">
+                                    <div class="config-item-header">
+                                        <label>🔴 销量严重偏低阈值</label>
+                                        <span class="config-value-badge" id="valSaleCritical">-80%</span>
+                                    </div>
+                                    <input type="range" class="config-slider" id="sliderSaleCritical"
+                                           min="0.01" max="0.5" step="0.01"
+                                           value="{{ sale_critical_val }}">
+                                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--biz-text);opacity:0.6;">
+                                        <span>5%</span>
+                                        <span>50%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="config-actions">
+                                <button class="btn-config-apply" id="applyConfigBtn">
+                                    <i class="bi bi-check2"></i> 应用配置
+                                </button>
+                                <button class="btn-config-reset" id="resetConfigBtn">
+                                    <i class="bi bi-arrow-counterclockwise"></i> 重置默认
+                                </button>
+                                <span class="config-loading" id="configLoading">
+                                    <span class="spinner-sm"></span> 正在更新预警数据...
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 卡片2：异常车型列表 ===== -->
+    <div class="row mt-3">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center gap-2 flex-wrap">
+                        <span>📛 异常车型列表</span>
+                        <span class="badge bg-danger ms-1" id="warningTotalBadge">共 {{ total }} 条预警</span>
+                        {% if price_low_val != 0.7 or price_high_val != 1.3 or sale_ratio_val != 0.5 or sale_critical_val != 0.2 %}
+                        <span style="font-size:12px;font-weight:400;color:var(--biz-text);opacity:0.7;">
+                            <i class="bi bi-info-circle"></i> 已应用自定义规则
+                        </span>
+                        {% endif %}
+                    </h5>
+
+                    <!-- 下载按钮 -->
+                    <div class="mb-3">
+                        <a class="btn-download btn-download-excel" id="exportExcelBtn"
+                           href="?export=excel&price_low={{ price_low_val }}&price_high={{ price_high_val }}&sale_ratio={{ sale_ratio_val }}&sale_critical={{ sale_critical_val }}">
+                            <i class="bi bi-file-earmark-excel"></i> 导出 Excel
+                        </a>
+                    </div>
+
+                    <!-- 表格 -->
+                    <div id="warningTableContainer">
+                        {% if warning_list %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered warning-table" id="warningTable">
+                                <thead class="table-danger">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>品牌</th>
+                                        <th>车型</th>
+                                        <th>级别</th>
+                                        <th>销量</th>
+                                        <th>价格</th>
+                                        <th>预警原因</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="warningTableBody">
+                                    {% for item in warning_list %}
+                                    <tr>
+                                        <td>{{ item.id }}</td>
+                                        <td>{{ item.brand }}</td>
+                                        <td>{{ item.carname }}</td>
+                                        <td>{{ item.level }}</td>
+                                        <td>
+                                            {% if '严重偏低' in item.reason %}
+                                            <span class="badge bg-danger">{{ item.salevolume }}</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">{{ item.salevolume }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ item.price }}</td>
+                                        <td>
+                                            {% if '严重' in item.reason %}
+                                            <span class="text-danger fw-bold">{{ item.reason }}</span>
+                                            {% else %}
+                                            <span class="text-warning fw-bold">{{ item.reason }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success" id="noWarningAlert">✅ 暂无预警，所有车辆数据正常！</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ===== 初始化 =====
+    updateSliderDisplay();
+    loadSavedConfig();
+    initHelpSteps();
+
+    // ===== 事件绑定 =====
+    document.getElementById('configToggleBtn').addEventListener('click', toggleConfigPanel);
+    document.getElementById('applyConfigBtn').addEventListener('click', applyConfig);
+    document.getElementById('resetConfigBtn').addEventListener('click', resetConfig);
+
+    document.getElementById('sliderPriceLow').addEventListener('input', updateSliderDisplay);
+    document.getElementById('sliderPriceHigh').addEventListener('input', updateSliderDisplay);
+    document.getElementById('sliderSaleRatio').addEventListener('input', updateSliderDisplay);
+    document.getElementById('sliderSaleCritical').addEventListener('input', updateSliderDisplay);
+});
+
+// ===== 滑块显示更新 =====
+function updateSliderDisplay() {
+    var sl = document.getElementById('sliderPriceLow');
+    var sh = document.getElementById('sliderPriceHigh');
+    var sr = document.getElementById('sliderSaleRatio');
+    var sc = document.getElementById('sliderSaleCritical');
+    if (!sl) return;
+
+    document.getElementById('valPriceLow').textContent = '-' + Math.round((1 - parseFloat(sl.value)) * 100) + '%';
+    document.getElementById('valPriceHigh').textContent = '+' + Math.round((parseFloat(sh.value) - 1) * 100) + '%';
+    document.getElementById('valSaleRatio').textContent = '-' + Math.round((1 - parseFloat(sr.value)) * 100) + '%';
+    document.getElementById('valSaleCritical').textContent = '-' + Math.round((1 - parseFloat(sc.value)) * 100) + '%';
+}
+
+// ===== 面板折叠 =====
+function toggleConfigPanel() {
+    var panel = document.getElementById('configPanel');
+    var icon = document.getElementById('configToggleIcon');
+    var text = document.getElementById('configToggleText');
+    panel.classList.toggle('open');
+    icon.style.transform = panel.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+    text.textContent = panel.classList.contains('open') ? '收起配置' : '规则配置';
+}
+
+// ===== 应用配置 =====
+function applyConfig() {
+    var sl = document.getElementById('sliderPriceLow');
+    var sh = document.getElementById('sliderPriceHigh');
+    var sr = document.getElementById('sliderSaleRatio');
+    var sc = document.getElementById('sliderSaleCritical');
+
+    var params = {
+        price_low: parseFloat(sl.value),
+        price_high: parseFloat(sh.value),
+        sale_ratio: parseFloat(sr.value),
+        sale_critical: parseFloat(sc.value)
+    };
+
+    var btn = document.getElementById('applyConfigBtn');
+    var loading = document.getElementById('configLoading');
+    btn.disabled = true;
+    loading.classList.add('show');
+
+    fetch('/app/api/car_warning/config/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.code === 0) {
+            updateWarningTable(data.data);
+            updateRuleDisplay(data.data.params);
+            updateExportLinks(data.data.params);
+            saveConfigToLocal(data.data.params);
+            closeConfigPanel();
+        } else {
+            alert('更新失败：' + data.msg);
+        }
+    })
+    .catch(function() {
+        var q = '?price_low=' + params.price_low + '&price_high=' + params.price_high +
+                '&sale_ratio=' + params.sale_ratio + '&sale_critical=' + params.sale_critical;
+        window.location.href = '/app/car_warning/' + q;
+    })
+    .finally(function() {
+        btn.disabled = false;
+        loading.classList.remove('show');
+    });
+}
+
+// ===== 更新表格 =====
+function updateWarningTable(data) {
+    var total = data.total;
+    var list = data.list;
+    var container = document.getElementById('warningTableContainer');
+
+    document.getElementById('warningTotalBadge').textContent = '共 ' + total + ' 条预警';
+
+    if (list.length === 0) {
+        container.innerHTML = '<div class="alert alert-success">✅ 暂无预警，所有车辆数据正常！</div>';
+        return;
+    }
+
+    var html = '<div class="table-responsive"><table class="table table-hover table-bordered warning-table">';
+    html += '<thead class="table-danger"><tr>';
+    html += '<th>ID</th><th>品牌</th><th>车型</th><th>级别</th><th>销量</th><th>价格</th><th>预警原因</th>';
+    html += '</tr></thead><tbody>';
+
+    for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        var isCritical = item.reason.indexOf('严重偏低') >= 0;
+        var hasSevere = item.reason.indexOf('严重') >= 0;
+        html += '<tr>';
+        html += '<td>' + item.id + '</td>';
+        html += '<td>' + escapeHtml(item.brand) + '</td>';
+        html += '<td>' + escapeHtml(item.carname) + '</td>';
+        html += '<td>' + escapeHtml(item.level) + '</td>';
+        html += '<td>' + (isCritical ? '<span class="badge bg-danger">' : '<span class="badge bg-warning">') + item.salevolume + '</span></td>';
+        html += '<td>' + item.price + '</td>';
+        if (hasSevere) {
+            html += '<td><span class="text-danger fw-bold">' + escapeHtml(item.reason) + '</span></td>';
+        } else {
+            html += '<td><span class="text-warning fw-bold">' + escapeHtml(item.reason) + '</span></td>';
+        }
+        html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function escapeHtml(text) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(text));
+    return d.innerHTML;
+}
+
+// ===== 更新规则说明显示 =====
+function updateRuleDisplay(params) {
+    document.getElementById('rulePriceLowDisplay').textContent = Math.round((1 - params.price_low) * 100) + '%';
+    document.getElementById('rulePriceHighDisplay').textContent = '+' + Math.round((params.price_high - 1) * 100) + '%';
+    document.getElementById('ruleSaleRatioDisplay').textContent = Math.round((1 - params.sale_ratio) * 100) + '%';
+    document.getElementById('ruleSaleCriticalDisplay').textContent = Math.round((1 - params.sale_critical) * 100) + '%';
+}
+
+// ===== 更新导出链接 =====
+function updateExportLinks(params) {
+    var q = '?export=excel&price_low=' + params.price_low + '&price_high=' + params.price_high +
+            '&sale_ratio=' + params.sale_ratio + '&sale_critical=' + params.sale_critical;
+    document.getElementById('exportExcelBtn').href = '/app/car_warning/' + q;
+}
+
+// ===== 关闭面板 =====
+function closeConfigPanel() {
+    var panel = document.getElementById('configPanel');
+    panel.classList.remove('open');
+    document.getElementById('configToggleIcon').style.transform = 'rotate(0deg)';
+    document.getElementById('configToggleText').textContent = '规则配置';
+}
+
+// ===== 重置默认 =====
+function resetConfig() {
+    document.getElementById('sliderPriceLow').value = '0.7';
+    document.getElementById('sliderPriceHigh').value = '1.3';
+    document.getElementById('sliderSaleRatio').value = '0.5';
+    document.getElementById('sliderSaleCritical').value = '0.2';
+    updateSliderDisplay();
+
+    var params = { price_low: 0.7, price_high: 1.3, sale_ratio: 0.5, sale_critical: 0.2 };
+    var btn = document.getElementById('applyConfigBtn');
+    var loading = document.getElementById('configLoading');
+    btn.disabled = true;
+    loading.classList.add('show');
+
+    fetch('/app/api/car_warning/config/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.code === 0) {
+            updateWarningTable(data.data);
+            updateRuleDisplay(data.data.params);
+            updateExportLinks(data.data.params);
+            localStorage.removeItem('warning_rule_config');
+            closeConfigPanel();
+        }
+    })
+    .catch(function() {
+        window.location.href = '/app/car_warning/';
+    })
+    .finally(function() {
+        btn.disabled = false;
+        loading.classList.remove('show');
+    });
+}
+
+// ===== localStorage 持久化 =====
+function saveConfigToLocal(params) {
+    localStorage.setItem('warning_rule_config', JSON.stringify(params));
+}
+
+function loadSavedConfig() {
+    try {
+        var saved = localStorage.getItem('warning_rule_config');
+        if (saved) {
+            var params = JSON.parse(saved);
+            var urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('price_low') || urlParams.has('price_high')) {
+                return;
+            }
+            document.getElementById('sliderPriceLow').value = params.price_low || 0.7;
+            document.getElementById('sliderPriceHigh').value = params.price_high || 1.3;
+            document.getElementById('sliderSaleRatio').value = params.sale_ratio || 0.5;
+            document.getElementById('sliderSaleCritical').value = params.sale_critical || 0.2;
+            updateSliderDisplay();
+        }
+    } catch(e) {}
+}
+
+// ===== 引导帮助 =====
+function initHelpSteps() {
+    helpSteps = [
+        { selector: '.pagetitle h1', text: '这里是汽车预警监控页面，系统会自动检测价格、销量异常的车型。' },
+        { selector: '.card:has(.card-title)', text: '顶部展示预警规则说明和内置的阈值参数。' },
+        { selector: '#configToggleBtn', text: '点击"规则配置"按钮展开自定义面板，可自由调整价格/销量的预警阈值。' },
+        { selector: '.btn-download-excel', text: '使用当前配置的规则导出预警数据到 Excel 文件，参数随配置联动。' },
+        { selector: '.warning-table thead tr', text: '表格展示所有被系统判定为异常的车型。调整阈值后表格数据会自动无刷新更新。' },
+        { selector: '#warningTotalBadge', text: '实时显示当前规则下的预警总数。' }
+    ];
+    helpDelay = 300;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>汽车销售数据可视化大屏</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/jquery.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: #0b1220;
+            color: #ffffff;
+            background-image: linear-gradient(rgba(11, 18, 32, 0.9), rgba(11, 18, 32, 0.9));
+            background-size: cover;
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+        .header {
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #00e4ff;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(31, 58, 96, 0.3);
+            position: relative;
+        }
+        .user-info {
+            position: absolute;
+            right: 20px;
+            top: 18px;
+            font-size: 14px;
+            color: #a0cfff;
+        }
+        .main-wrapper {
+            max-width: 1920px;
+            width: 100%;
+            height: calc(100vh - 60px);
+            margin: 0 auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .top-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            flex: 1.2;
+            min-height: 0;
+        }
+        .bottom-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+        }
+        .col-1, .col-2, .col-3 {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+        .chart-row {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+        }
+        .box {
+            background: rgba(17, 30, 54, 0.7);
+            border: 1px solid rgba(37, 68, 119, 0.3);
+            border-radius: 4px;
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            height: 100%;
+        }
+        .chart-title {
+            font-size: 16px;
+            color: #00e4ff;
+            margin-bottom: 8px;
+            padding-left: 6px;
+            border-left: 3px solid rgba(0, 228, 255, 0.6);
+            flex-shrink: 0;
+        }
+        .chart {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            height: 100%;
+        }
+        .card-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100%;
+        }
+        .card-row {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+        }
+        .card {
+            flex: 1;
+            background: rgba(25,40,75,0.6);
+            border: 1px solid rgba(37, 68, 119, 0.3);
+            border-radius: 4px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+        .card-title {
+            font-size: 13px;
+            color: #b2c6e2;
+            margin-bottom: 4px;
+        }
+        .card-num {
+            font-size: 26px;
+            font-weight: bold;
+            color: #00e4ff;
+        }
+        .rank-box {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .rank-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 4px 0;
+            overflow-y: auto;
+            overflow-x: visible;
+        }
+        .rank-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .rank-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 228, 255, 0.6);
+            border-radius: 3px;
+        }
+        .rank-list::-webkit-scrollbar-track {
+            background: rgba(25,40,75,0.3);
+        }
+        .rank-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: rgba(25, 40, 75, 0.5);
+            border: 1px solid rgba(37, 68, 119, 0.3);
+            border-radius: 4px;
+            gap: 10px;
+            flex-shrink: 0;
+            position: relative;
+            overflow: visible !important;
+        }
+        .rank-index {
+            width: 26px;
+            height: 26px;
+            line-height: 26px;
+            text-align: center;
+            background: #00e4ff;
+            color: #0b1220;
+            border-radius: 3px;
+            font-size: 13px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .rank-img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid rgba(37, 68, 119, 0.3);
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            z-index: 1;
+        }
+        .img-preview {
+            position: absolute;
+            left: 70px;
+            top: 50%;
+            transform: translateY(-50%) scale(0);
+            width: 280px;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid rgba(0, 228, 255, 0.6);
+            box-shadow: 0 0 20px rgba(0,228,255,0.3);
+            transition: transform 0.3s ease;
+            z-index: 999;
+            background: #0b1220;
+        }
+        .rank-item:first-child .img-preview {
+            top: calc(50% + 30px);
+        }
+        .rank-item:last-child .img-preview {
+            top: calc(50% - 30px);
+        }
+        .rank-img:hover + .img-preview {
+            transform: translateY(-50%) scale(1);
+        }
+        .rank-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .rank-name {
+            font-size: 14px;
+            color: #e1efff;
+            font-weight: 50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .rank-desc {
+            font-size: 12px;
+            color: #a0cfff;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .rank-sales {
+            font-size: 14px;
+            font-weight: bold;
+            color: #f7c500;
+            white-space: nowrap;
+        }
+        .rank-item:nth-child(1) .rank-index { background: #ff3d3d; color: #fff; }
+        .rank-item:nth-child(2) .rank-index { background: #ff9500; color: #fff; }
+        .rank-item:nth-child(3) .rank-index { background: #14d9b7; color: #fff; }
+    </style>
+</head>
+<body>
+<div class="header">
+    全国汽车销售数据可视化大屏 | 上月统计
+    <div class="user-info">
+        欢迎：{{ userInfo.name }}（{{ userInfo.username }}）
+    </div>
+</div>
+<div class="main-wrapper">
+    <div class="top-row">
+        <div class="col-1">
+            <div class="box">
+                <div class="chart-title">汽车销量排行榜 TOP20</div>
+                <div class="rank-box">
+                    <div class="rank-list">
+                        {% for car in top_car_list %}
+                        <div class="rank-item">
+                            <div class="rank-index">{{ forloop.counter }}</div>
+                            <img src="{{ car.carimg }}" class="rank-img" alt="车图">
+                            <img src="{{ car.carimg }}" class="img-preview" alt="完整车图">
+                            <div class="rank-info">
+                                <div class="rank-name">{{ car.carname }}</div>
+                                <div class="rank-desc">
+                                    <span>价格：{{ car.price }}</span>
+                                    <span>能源：{{ car.energytype }}</span>
+                                    <span>保修：{{ car.insure|default:"无" }}</span>
+                                </div>
+                            </div>
+                            <div class="rank-sales">{{ car.salevolume }} 辆</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-2">
+            <div class="box">
+                <div class="chart-title">核心数据统计</div>
+                <div class="card-group">
+                    <div class="card-row">
+                        <div class="card">
+                            <div class="card-title">汽车总车型</div>
+                            <div class="card-num">{{ total_car_count }}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title">累计销量</div>
+                            <div class="card-num">{{ total_sales }}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title">品牌总数</div>
+                            <div class="card-num">{{ total_brands }}</div>
+                        </div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card">
+                            <div class="card-title">新能源汽车数量</div>
+                            <div class="card-num">{{ new_energy_cars }}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title">销量最多品牌</div>
+                            <div class="card-num">{{ top_brand_display }}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title">销量最多车型</div>
+                            <div class="card-num">{{ top_model_display }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="box">
+                    <div class="chart-title">品牌销量 TOP8</div>
+                    <div id="brandChart" class="chart"></div>
+                </div>
+                <div class="box">
+                    <div class="chart-title">销售价格区间占比</div>
+                    <div id="pricePieChart" class="chart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="box">
+                <div class="chart-title">能源类型结构</div>
+                <div id="energyPieChart" class="chart"></div>
+            </div>
+        </div>
+    </div>
+    <div class="bottom-row">
+        <div class="col-1">
+            <div class="box">
+                <div class="chart-title">汽车销量 & 均价走势图</div>
+                <div id="dualAxisChart" class="chart"></div>
+            </div>
+        </div>
+        <div class="col-2">
+            <div class="box">
+                <div class="chart-title">车型销量分布</div>
+                <div id="modelChart" class="chart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+var chartDom = document.getElementById('brandChart');
+var myChart = echarts.init(chartDom);
+var isPause = false;
+var timer = null;
+var fullBrands = {{ brands|safe }};
+var fullSales = {{ brand_sales|safe }};
+var showCount = 5;
+var totalCount = fullBrands.length;
+function updateChart() {
+    let showBrands = [];
+    let showSales = [];
+    for (let i = 0; i < showCount; i++) {
+        let index = i % totalCount;
+        showBrands.push(fullBrands[index]);
+        showSales.push(fullSales[index]);
+    }
+    var option = {
+        tooltip: { trigger: 'axis' },
+        grid: { left: '36%', right: '9%', top: '10%', bottom: '20%' },
+        xAxis: {
+            type: 'value',
+            axisLabel: { color: '#fff' },
+            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+            splitNumber: 2
+        },
+        yAxis: { type: 'category', data: showBrands, axisLabel: { color: '#fff', fontSize: 12 } },
+        series: [{
+            data: showSales, type: 'bar',
+            itemStyle: { color: new echarts.graphic.LinearGradient(0,0,1,0,[
+                {offset:0,color:'#00e4ff'},{offset:1,color:'#007bff'}
+            ])},
+            barWidth: '28%'
+        }]
+    };
+    myChart.setOption(option);
+}
+function startRoll() {
+    if(timer) clearInterval(timer);
+    timer = setInterval(()=>{
+        if(isPause) return;
+        let b = fullBrands.shift();
+        let s = fullSales.shift();
+        fullBrands.push(b);
+        fullSales.push(s);
+        updateChart();
+    },1600);
+}
+chartDom.onmouseover = ()=>{isPause=true;}
+chartDom.onmouseout = ()=>{isPause=false;}
+updateChart();
+startRoll();
+
+var modelChart = echarts.init(document.getElementById('modelChart'));
+modelChart.setOption({
+    tooltip: {trigger:'axis'},
+    grid: {left:'8%',right:'5%',bottom:'28%',top:'8%'},
+    xAxis: {
+        type:'category',
+        data:{{ car_models|safe }},
+        axisLabel: {
+            color:'#fff',
+            fontSize:11,
+            rotate:45,
+            interval:0
+        }
+    },
+    yAxis: {type:'value',axisLabel:{color:'#fff'},splitLine:{lineStyle:{color:'rgba(255,255,255,0.2)'}}},
+    series: [{data:{{ model_sales|safe }},type:'bar',itemStyle:{color:'#f7c500'},barWidth:'45%'}]
+});
+
+var energyPieChart = echarts.init(document.getElementById('energyPieChart'));
+var energyData = {{ energy_sales_data|safe }};
+var energyIndex = 0;
+var energyTimer = null;
+var energyPause = false;
+
+function initEnergyChart() {
+    energyPieChart.setOption({
+        tooltip: {trigger:'item',formatter:'{b} : {c} ({d}%)'},
+        legend: {
+            orient: 'horizontal',
+            bottom: '5%',
+            left: 'center',
+            textStyle: {color:'#fff',fontSize:12}
+        },
+        series: [{
+            type: 'pie',
+            radius: ['13%', '60%'],
+            center: ['50%', '45%'],
+            roseType: 'radius',
+            data: energyData,
+            label:{show:true,color:'#fff',fontSize:12},
+            itemStyle: {
+                borderRadius: 6
+            },
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 20,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 228, 255, 0.6)'
+                }
+            }
+        }]
+    }, true);
+}
+
+function startEnergyAutoPlay() {
+    if(energyTimer) clearInterval(energyTimer);
+    energyTimer = setInterval(() => {
+        if(energyPause) return;
+        energyPieChart.dispatchAction({
+            type: 'downplay',
+            seriesIndex: 0
+        });
+        energyPieChart.dispatchAction({
+            type: 'highlight',
+            seriesIndex: 0,
+            dataIndex: energyIndex
+        });
+        energyIndex = (energyIndex + 1) % energyData.length;
+    }, 1500);
+}
+
+document.getElementById('energyPieChart').addEventListener('mouseenter', () => {
+    energyPause = true;
+});
+document.getElementById('energyPieChart').addEventListener('mouseleave', () => {
+    energyPause = false;
+});
+
+initEnergyChart();
+startEnergyAutoPlay();
+
+var pricePieChart = echarts.init(document.getElementById('pricePieChart'));
+var priceData = {{ price_range_data|safe }}.filter(i=>i.value>0);
+pricePieChart.setOption({
+    tooltip: {trigger:'item',formatter:'{b} : {c} ({d}%)'},
+    legend: {
+        orient: 'vertical',
+        right: '-100%',
+        top: 'center',
+        textStyle: { color: '#fff', fontSize: 12 }
+    },
+    series: [{
+        type: 'pie',
+        radius: ['42%', '52%'],
+        center: ['50%', '50%'],
+        data: priceData,
+        label: {
+            show: true,
+            color: '#fff',
+            fontSize: 12
+        },
+        labelLine: {
+            lineStyle: { color: 'rgba(255,255,255,0.4)' }
+        }
+    }]
+});
+
+var dualData = {{ dual_axis_data|safe }};
+var dualChart = echarts.init(document.getElementById('dualAxisChart'));
+var dualTimer = null;
+var dualPause = false;
+
+function renderDualChart() {
+    let showX = dualData.x_axis.slice(1, -1);
+    let showSales = dualData.sales.slice(1, -1);
+    let showPrice = dualData.avg_price.slice(1, -1);
+    dualChart.setOption({
+        tooltip: {trigger: 'axis'},
+        legend: {data:['销量','均价（万）'],textStyle:{color:'#fff'},bottom:0},
+        grid: {left: '3%', right: '4%', bottom: '6%', top: '10%', containLabel: true},
+        xAxis: {
+            type: 'category',
+            data: showX,
+            axisLabel: {color: '#fff', rotate: 30, fontSize:11},
+            animationDuration: 800,
+            animationEasing: 'cubicOut'
+        },
+        yAxis: [
+            {type: 'value', name: '销量', position: 'left', axisLabel: {color: '#00e4ff'}, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }},
+            {type: 'value', name: '均价(万)', position: 'right', axisLabel: {color: '#f7c500'}, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }}
+        ],
+        series: [
+            {
+                name: '销量',
+                type: 'bar',
+                yAxisIndex: 0,
+                data: showSales,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#00e4ff' },
+                        { offset: 1, color: '#0066ff' }
+                    ])
+                },
+                animationDuration: 800
+            },
+            {
+                name: '均价（万）',
+                type: 'line',
+                yAxisIndex: 1,
+                data: showPrice,
+                smooth: true,
+                symbol: 'circle',
+                symbolSize: 8,
+                lineStyle: {
+                    width: 4,
+                    color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                        { offset: 0, color: '#ffd700' },
+                        { offset: 1, color: '#ff6347' }
+                    ])
+                },
+                itemStyle: {
+                    color: '#ffd700',
+                    borderColor: '#fff',
+                    borderWidth: 1
+                },
+                animationDuration: 800
+            }
+        ]
+    }, true);
+}
+function startDualRoll() {
+    if (dualTimer) clearInterval(dualTimer);
+    dualTimer = setInterval(() => {
+        if (dualPause) return;
+        let xFirst = dualData.x_axis.shift();
+        let sFirst = dualData.sales.shift();
+        let pFirst = dualData.avg_price.shift();
+        dualData.x_axis.push(xFirst);
+        dualData.sales.push(sFirst);
+        dualData.avg_price.push(pFirst);
+        renderDualChart();
+    }, 2000);
+}
+document.getElementById('dualAxisChart').addEventListener('mouseenter', () => { dualPause = true; });
+document.getElementById('dualAxisChart').addEventListener('mouseleave', () => { dualPause = false; });
+renderDualChart();
+startDualRoll();
+
+window.addEventListener('resize', ()=>{
+    myChart.resize();
+    modelChart.resize();
+    energyPieChart.resize();
+    pricePieChart.resize();
+    dualChart.resize();
+});
+</script>
+</body>
+</html>

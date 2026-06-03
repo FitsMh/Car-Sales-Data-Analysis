@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <script>
+        (function() {
+            const THEME_KEY = 'user_theme_preference';
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const finalTheme = savedTheme || (systemDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', finalTheme);
+        })();
+    </script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}首页{% endblock %}</title>
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+
+    <link rel="icon" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/car-front.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/car-front.svg">
+
+    <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+    <link href="/static/vendor/quill/quill.snow.css" rel="stylesheet">
+    <link href="/static/vendor/quill/quill.bubble.css" rel="stylesheet">
+    <link href="/static/vendor/remixicon/remixicon.css" rel="stylesheet">
+    <link href="/static/vendor/simple-datatables/style.css" rel="stylesheet">
+
+    <link href="/static/css/style.css" rel="stylesheet">
+
+</head>
+
+<style>
+html {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+body, .card, .sidebar, .header, .modal-content, #chatContent {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.theme-toggle-btn {
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease !important;
+}
+.theme-toggle-btn.rotating {
+    transform: rotate(360deg);
+}
+
+:root {
+    --biz-dark: #1a365d;
+    --biz-normal: #2563eb;
+    --biz-light: #eff6ff;
+    --biz-gray: #f8fafc;
+    --biz-gold: #d97706;
+    --biz-text: #1e293b;
+    --biz-border: #e2e8f0;
+    --biz-card-bg: #ffffff;
+    --biz-card-text: #1e293b;
+}
+
+[data-theme="dark"] {
+    --biz-dark: #3b82f6;
+    --biz-normal: #60a5fa;
+    --biz-light: #1e293b;
+    --biz-gray: #0f172a;
+    --biz-gold: #f59e0b;
+    --biz-text: #f1f5f9;
+    --biz-border: #334155;
+    --biz-card-bg: #1e293b;
+    --biz-card-text: #f1f5f9;
+}
+
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-track { background: #f1f5f9; }
+.sidebar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 3px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: #1d4ed8; }
+[data-theme="dark"] .sidebar::-webkit-scrollbar-track { background: #1e293b; }
+[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb { background: #60a5fa; }
+
+body {
+    background: var(--biz-gray);
+    color: var(--biz-text);
+}
+
+a { color: var(--biz-normal); }
+a:hover { color: var(--biz-dark); }
+
+h1,h2,h3,h4,h5,h6 {
+    color: var(--biz-dark);
+    transition: color 0.5s ease !important;
+}
+
+.header {
+    background: linear-gradient(90deg, #ffffff 0%, var(--biz-light) 100%);
+    border-bottom: 1px solid var(--biz-border);
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.08);
+}
+[data-theme="dark"] .header {
+    background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+}
+
+.logo span { color: var(--biz-dark) !important; }
+.logo i { color: var(--biz-normal) !important; }
+.toggle-sidebar-btn { color: var(--biz-normal) !important; }
+
+.theme-toggle-btn {
+    background: transparent;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--biz-normal);
+}
+.theme-toggle-btn:hover {
+    background: var(--biz-light);
+}
+
+.btn-help {
+    background: transparent;
+    border: none;
+    color: var(--biz-normal);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    margin-left: 8px;
+}
+.btn-help:hover {
+    background: var(--biz-light);
+    color: var(--biz-dark);
+}
+
+.help-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+.help-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.help-highlight {
+    position: absolute;
+    background: transparent;
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+    z-index: 9999;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.help-tooltip {
+    position: absolute;
+    background: var(--biz-card-bg) !important;
+    color: var(--biz-text) !important;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    z-index: 9999;
+    min-width: 280px;
+    max-width: 360px;
+    transition: all 0.4s ease;
+    border: 1px solid var(--biz-border);
+}
+.help-text {
+    margin-bottom: 12px;
+    line-height: 1.5;
+    color: var(--biz-text) !important;
+}
+.help-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+}
+.help-controls .btn {
+    color: var(--biz-text) !important;
+    background: var(--biz-light) !important;
+    border: 1px solid var(--biz-border) !important;
+    transition: all 0.3s ease !important;
+}
+.help-controls .btn:hover {
+    background: var(--biz-normal) !important;
+    color: #fff !important;
+    border-color: var(--biz-normal) !important;
+}
+.step-count {
+    font-size: 13px;
+    color: var(--biz-text) !important;
+}
+
+.sidebar {
+    width: 250px;
+    background: var(--biz-card-bg);
+    border-right: 1px solid var(--biz-border);
+}
+
+@media (min-width: 1200px) {
+    #main, #footer { margin-left: 260px; }
+}
+
+.sidebar .nav-link {
+    margin: 2px 8px;
+    color: #334155;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+.sidebar .nav-link.collapsed {
+    background: transparent;
+    color: #334155;
+}
+.sidebar .nav-link.collapsed i { color: #64748b; }
+
+[data-theme="dark"] .sidebar .nav-link { color: #cbd5e1; }
+[data-theme="dark"] .sidebar .nav-link.collapsed { color: #cbd5e1; }
+[data-theme="dark"] .sidebar .nav-link.collapsed i { color: #94a3b8; }
+
+.sidebar .nav-link:hover {
+    background-color: var(--biz-light) !important;
+    color: var(--biz-normal) !important;
+    border-radius: 8px;
+    margin: 2px 8px;
+}
+.sidebar .nav-link:hover i { color: var(--biz-normal) !important; }
+
+.sidebar .nav-link.active {
+    background: linear-gradient(90deg, var(--biz-dark), var(--biz-normal)) !important;
+    color: #fff !important;
+    border-radius: 8px;
+    margin: 2px 8px;
+    box-shadow: 0 3px 6px rgba(37, 99, 235, 0.2);
+    border: none;
+}
+.sidebar .nav-link.active i { color: #fff !important; }
+
+.sidebar-nav .nav-heading {
+    color: var(--biz-dark);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: color 0.5s ease;
+}
+[data-theme="dark"] .sidebar-nav .nav-heading { color: #f1f5f9; }
+
+.main { background: var(--biz-gray); }
+
+.card {
+    border: 1px solid var(--biz-border);
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--biz-card-bg);
+    color: var(--biz-card-text);
+}
+.card-header {
+    background: var(--biz-light);
+    border-bottom: 1px solid var(--biz-border);
+    color: var(--biz-text);
+}
+[data-theme="dark"] .card-header {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+.hero-banner {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: white;
+}
+[data-theme="dark"] .hero-banner {
+    background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
+}
+
+[data-theme="dark"] .card-title,
+[data-theme="dark"] .card-text,
+[data-theme="dark"] .list-group-item,
+[data-theme="dark"] .text-muted {
+    color: var(--biz-card-text) !important;
+}
+
+.btn-primary {
+    background: var(--biz-normal);
+    border-color: var(--biz-normal);
+}
+.btn-primary:hover {
+    background: var(--biz-dark);
+    border-color: var(--biz-dark);
+}
+
+.back-to-top { background: var(--biz-normal) !important; }
+.back-to-top:hover { background: var(--biz-dark) !important; }
+
+.alert-success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+.alert-danger {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+[data-theme="dark"] .alert-success {
+    background: #064e3b;
+    border-color: #059669;
+    color: #d1fae5;
+}
+[data-theme="dark"] .alert-danger {
+    background: #7f1d1d;
+    border-color: #dc2626;
+    color: #fee2e2;
+}
+
+.logo {
+    white-space: nowrap;
+    overflow: visible;
+    flex-shrink: 0;
+}
+.logo i { flex-shrink: 0; }
+.logo span {
+    flex-shrink: 0;
+    line-height: 1.2;
+}
+
+@media (max-width: 991.98px) {
+    .logo span {
+        display: inline-block !important;
+        font-size: 18px !important;
+    }
+    .logo i { font-size: 1.5rem !important; }
+}
+
+.ai-chat-float-btn {
+    position: fixed;
+    right: 6px;
+    bottom: 70px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 9999;
+    cursor: pointer;
+}
+.ai-chat-float-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+}
+.ai-chat-float-btn i { font-size: 24px; }
+
+#aiChatModal .modal-content {
+    border-radius: 16px;
+    border: none;
+    overflow: hidden;
+    background: var(--biz-card-bg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+[data-theme="dark"] #aiChatModal .modal-content {
+    background: var(--biz-card-bg);
+    color: #f1f5f9;
+}
+
+#aiChatModal .modal-header {
+    position: relative;
+    border: none;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+    background: #1a365d;
+}
+#aiChatModal .modal-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg,
+        #1a365d 0%, #2563eb 20%, #3b82f6 40%,
+        #2563eb 60%, #1a365d 80%, #1a365d 100%
+    );
+    background-size: 200% 100%;
+    animation: modalHeaderFlow 8s linear infinite;
+    opacity: 0.9;
+    z-index: 0;
+}
+@keyframes modalHeaderFlow {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+#aiChatModal .modal-title {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: white;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#clearChatBtn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 2px;
+    position: relative;
+    z-index: 2;
+}
+#clearChatBtn:hover { background: rgba(255,255,255,0.35); }
+#aiChatModal .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
+    position: relative;
+    z-index: 2;
+}
+#aiChatModal .modal-body {
+    padding: 20px;
+    background: var(--biz-card-bg);
+}
+[data-theme="dark"] #aiChatModal .modal-body { background: var(--biz-card-bg); }
+
+#chatContent {
+    height: 400px;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--biz-light);
+    border: 1px solid var(--biz-border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+#chatContent::-webkit-scrollbar { width: 6px; }
+#chatContent::-webkit-scrollbar-track { background: transparent; }
+#chatContent::-webkit-scrollbar-thumb {
+    background: var(--biz-normal);
+    border-radius: 3px;
+}
+[data-theme="dark"] #chatContent {
+    background: #334155;
+    border-color: #475569;
+}
+
+#chatContent .user-message {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+    animation: slideInRight 0.3s ease;
+    align-items: flex-start;
+}
+#chatContent .user-message .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-left: 10px;
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid var(--biz-border);
+}
+#chatContent .user-message span {
+    background: linear-gradient(135deg, var(--biz-normal), var(--biz-dark));
+    color: white;
+    padding: 10px 14px;
+    border-radius: 18px 4px 18px 18px;
+    max-width: 75%;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+    line-height: 1.6;
+    font-size: 15px;
+}
+#chatContent .ai-message {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 16px;
+    animation: slideInLeft 0.3s ease;
+    align-items: flex-start;
+}
+#chatContent .ai-message .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--biz-normal), var(--biz-dark));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+#chatContent .ai-message span {
+    background: #f8fafc;
+    color: var(--biz-text);
+    padding: 12px 16px;
+    border-radius: 4px 18px 18px 18px;
+    max-width: 75%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--biz-border);
+    line-height: 1.8;
+    font-size: 15px;
+    white-space: pre-line;
+}
+[data-theme="dark"] #chatContent .ai-message span {
+    background: #475569;
+    color: #f1f5f9;
+}
+
+#chatContent .loading-message span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    color: #64748b;
+    padding: 12px 16px;
+    border-radius: 4px 18px 18px 18px;
+    border: 1px solid var(--biz-border);
+    font-size: 15px;
+    white-space: nowrap;
+}
+[data-theme="dark"] #chatContent .loading-message span {
+    background: #475569;
+    color: #cbd5e1;
+}
+
+#chatContent .loading-message .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(37, 99, 235, 0.2);
+    border-top-color: var(--biz-normal);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+#chatInput {
+    border: 1px solid var(--biz-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 15px;
+    background: white;
+    color: var(--biz-text);
+    transition: all 0.3s ease;
+}
+#chatInput:focus {
+    border-color: var(--biz-normal);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    outline: none;
+}
+[data-theme="dark"] #chatInput {
+    background: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+#sendChat {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--biz-normal), var(--biz-dark));
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    flex-shrink: 0;
+}
+#sendChat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+.page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(248, 250, 252, 0.98);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+[data-theme="dark"] .page-loading-overlay {
+    background: rgba(15, 23, 42, 0.98);
+}
+
+.page-loading-overlay.show {
+    display: flex;
+    opacity: 1;
+}
+
+.page-loading-overlay .loading-container {
+    text-align: center;
+    animation: loadingFadeIn 0.6s ease;
+}
+
+@keyframes loadingFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-loading-overlay .loading-spinner {
+    width: 80px;
+    height: 80px;
+    border: 4px solid rgba(37, 99, 235, 0.1);
+    border-top: 4px solid #2563eb;
+    border-right: 4px solid #3b82f6;
+    border-bottom: 4px solid #60a5fa;
+    border-radius: 50%;
+    animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    margin: 0 auto 30px;
+    position: relative;
+}
+
+.page-loading-overlay .loading-spinner::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border: 3px solid transparent;
+    border-top-color: rgba(37, 99, 235, 0.3);
+    border-radius: 50%;
+    animation: spin 2s linear infinite reverse;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.page-loading-overlay .loading-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 12px;
+}
+
+[data-theme="dark"] .page-loading-overlay .loading-title {
+    color: #f1f5f9;
+}
+
+.page-loading-overlay .loading-subtitle {
+    font-size: 15px;
+    color: #64748b;
+    margin-bottom: 30px;
+}
+
+[data-theme="dark"] .page-loading-overlay .loading-subtitle {
+    color: #94a3b8;
+}
+
+.page-loading-overlay .loading-progress {
+    width: 250px;
+    height: 3px;
+    background: rgba(37, 99, 235, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.page-loading-overlay .loading-progress .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
+    border-radius: 2px;
+    width: 0%;
+    animation: progressSlide 2s ease-in-out infinite;
+}
+
+@keyframes progressSlide {
+    0% {
+        width: 0%;
+    }
+    50% {
+        width: 70%;
+    }
+    100% {
+        width: 100%;
+    }
+}
+
+.sidebar .nav-link {
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar .nav-link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(37, 99, 235, 0.1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
+    opacity: 0;
+}
+
+.sidebar .nav-link:active::after {
+    width: 300px;
+    height: 300px;
+    opacity: 1;
+    transition: width 0s, height 0s, opacity 0.3s ease;
+}
+
+.main .card {
+    animation: contentFadeIn 0.6s ease;
+}
+
+@keyframes contentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.skeleton-loader {
+    display: none;
+    padding: 20px;
+}
+
+.skeleton-loader.show {
+    display: block;
+}
+
+.skeleton-item {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .skeleton-item {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-item.title {
+    height: 32px;
+    width: 60%;
+}
+
+.skeleton-item.chart {
+    height: 300px;
+    width: 100%;
+}
+
+.skeleton-item.text {
+    height: 16px;
+    width: 100%;
+}
+
+.skeleton-item.text.short {
+    width: 40%;
+}
+</style>
+
+<body>
+
+<div id="helpOverlay" class="help-overlay">
+    <div id="helpHighlight" class="help-highlight"></div>
+    <div id="helpTooltip" class="help-tooltip">
+        <div class="help-text"></div>
+        <div class="help-controls">
+            <button class="btn btn-sm btn-prev">上一步</button>
+            <span class="step-count"></span>
+            <button class="btn btn-sm btn-next">下一步</button>
+            <button class="btn btn-sm btn-close-help">结束</button>
+        </div>
+    </div>
+</div>
+
+<header id="header" class="header fixed-top d-flex align-items-center">
+    <div class="d-flex align-items-center justify-content-between w-100">
+        <div class="logo d-flex align-items-center">
+            <a href="{% url 'home' %}" class="d-flex align-items-center text-decoration-none">
+                <i class="bi bi-car-front-fill fs-2 me-2"></i>
+                <span style="font-size: 22px">汽车销售大数据分析系统</span>
+            </a>
+            <button class="btn-help" id="showHelpBtn" title="查看页面帮助">
+                <i class="bi bi-question-circle"></i>
+            </button>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <button class="theme-toggle-btn" id="themeToggle" title="切换夜间/白天模式">
+                <i class="bi bi-sun" id="themeIcon"></i>
+            </button>
+            <i class="bi bi-list toggle-sidebar-btn"></i>
+        </div>
+    </div>
+
+    <nav class="header-nav ms-auto">
+        <ul class="d-flex align-items-center">
+            <li class="nav-item dropdown pe-3">
+                <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
+                    <img src="/media/{{ userInfo.avatar }}" alt="Profile" class="rounded-circle">
+                    <span class="d-none d-md-block dropdown-toggle ps-2">{{ userInfo.username }}</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
+    <li class="dropdown-header">
+        <h6>{{ userInfo.username }}</h6>
+        <span>{{ userInfo.textarea }}</span>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+
+    <!-- 新增：修改信息 -->
+    <li>
+        <a class="dropdown-item d-flex align-items-center" href="{% url 'changeSelfInfo' %}">
+            <i class="bi bi-person"></i>
+            <span>修改信息</span>
+        </a>
+    </li>
+
+    <!-- 新增：修改密码 -->
+    <li>
+        <a class="dropdown-item d-flex align-items-center" href="{% url 'changePassword' %}">
+            <i class="bi bi-lock"></i>
+            <span>修改密码</span>
+        </a>
+    </li>
+
+    <li><hr class="dropdown-divider"></li>
+
+    <!-- 退出登录 -->
+    <li>
+        <a class="dropdown-item d-flex align-items-center" href="{% url 'logOut' %}" onclick="clearChatHistory()">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>退出登录</span>
+        </a>
+    </li>
+</ul>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+{% block sidebar %}
+<aside id="sidebar" class="sidebar">
+    <ul class="sidebar-nav" id="sidebar-nav">
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'home' %}">
+                <i class="bi bi-grid"></i>
+                <span>首页</span>
+            </a>
+        </li>
+
+        <li class="nav-heading">汽车数据分析</li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'car_list' or request.resolver_match.url_name == 'car_detail' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'car_list' %}">
+                <i class="bi bi-list-ul"></i>
+                <span>汽车列表</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'car_market_analysis' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'car_market_analysis' %}">
+                <i class="bi bi-pie-chart"></i>
+                <span>市场分析</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'car_sales_analysis' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'car_sales_analysis' %}">
+                <i class="bi bi-bar-chart"></i>
+                <span>销量分析</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'clustering' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'clustering' %}">
+                <i class="bi bi-diagram-3"></i>
+                <span>聚类分析</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'wordcloud' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'wordcloud' %}">
+                <i class="bi bi-heart"></i>
+                <span>情感分析</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'car_warning' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'car_warning' %}">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>预警功能</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'car_comparison' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'car_comparison' %}">
+                <i class="bi bi-layout-split"></i>
+                <span>汽车对比</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link collapsed" href="http://127.0.0.1:8000/largescreen/" target="_blank">
+                <i class="bi bi-display"></i>
+                <span>大屏展示</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'car_recommendations' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'car_recommendations' %}">
+                <i class="bi bi-lightning-charge"></i>
+                <span>个性化推荐</span>
+            </a>
+        </li>
+
+        <li class="nav-heading">个人信息</li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'changeSelfInfo' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'changeSelfInfo' %}">
+                <i class="bi bi-menu-button-wide"></i>
+                <span>修改信息</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'changePassword' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'changePassword' %}">
+                <i class="bi bi-journal-text"></i>
+                <span>修改密码</span>
+            </a>
+        </li>
+
+        <li class="nav-heading">系统管理</li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'spider_management' %}active{% else %}collapsed{% endif %}"
+               href="{% url 'spider_management' %}">
+                <i class="bi bi-robot"></i>
+                <span>爬虫管理</span>
+            </a>
+        </li>
+    </ul>
+</aside>
+{% endblock %}
+
+<main id="main" class="main">
+    {% if messages %}
+    <div class="container">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<div class="modal fade" id="aiChatModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+            <i class="bi bi-robot me-2"></i>汽车销售 AI 助手
+        </h5>
+        <button id="clearChatBtn" title="清空聊天记录">
+            <i class="bi bi-trash me-1"></i>清空记录
+        </button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="chatContent"></div>
+        <div class="d-flex align-items-center gap-2">
+            <input type="text" id="chatInput" class="form-control" placeholder="请输入你的问题...">
+            <button id="sendChat" title="发送">
+                <i class="bi bi-arrow-up"></i>
+            </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="ai-chat-float-btn" id="aiChatBtn" title="AI 助手">
+    <i class="bi bi-robot"></i>
+</button>
+
+<a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i
+        class="bi bi-arrow-up-short"></i></a>
+
+<script src="/static/vendor/apexcharts/apexcharts.min.js"></script>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/vendor/chart.js/chart.min.js"></script>
+<script src="/static/vendor/echarts/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+<script src="/static/vendor/quill/quill.min.js"></script>
+<script src="/static/vendor/simple-datatables/simple-datatables.js"></script>
+<script src="/static/vendor/tinymce/tinymce.min.js"></script>
+<script src="/static/vendor/php-email-form/validate.js"></script>
+
+<script src="/static/js/main.js"></script>
+{% block echarts %}{% endblock %}
+
+<script>
+const STORAGE_KEY = `chat_history_{{ userInfo.id|default:"guest" }}`;
+const USER_AVATAR = "/media/{{ userInfo.avatar|default:'' }}";
+const THEME_KEY = 'user_theme_preference';
+
+let thinkingTimer = null;
+let thinkingStartTime = 0;
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadChatHistory();
+    initTheme();
+
+    const aiChatBtn = document.getElementById('aiChatBtn');
+    const aiChatModal = document.getElementById('aiChatModal');
+    const themeToggle = document.getElementById('themeToggle');
+
+    aiChatBtn.addEventListener('click', () => {
+        bootstrap.Modal.getOrCreateInstance(aiChatModal).show();
+        aiChatBtn.style.display = 'none';
+    });
+    aiChatModal.addEventListener('hidden.bs.modal', () => aiChatBtn.style.display = 'flex');
+    aiChatModal.addEventListener('shown.bs.modal', () => {
+        const c = document.getElementById('chatContent');
+        c.scrollTop = c.scrollHeight;
+    });
+
+    document.getElementById('clearChatBtn').addEventListener('click', () => {
+        if(!confirm('确定清空？')) return;
+        document.getElementById('chatContent').innerHTML = '';
+        saveChatHistory();
+    });
+
+    document.getElementById('sendChat').addEventListener('click', sendMessage);
+    document.getElementById('chatInput').addEventListener('keypress', e => e.key === 'Enter' && sendMessage());
+
+    themeToggle.addEventListener('click', () => {
+        themeToggle.classList.add('rotating');
+        setTimeout(() => themeToggle.classList.remove('rotating'), 500);
+        toggleTheme();
+        themeToggle.blur();
+    });
+
+    const pageLoadingOverlay = document.getElementById('pageLoadingOverlay');
+    const pageLoadingText = document.getElementById('pageLoadingText');
+    if (localStorage.getItem('justLoggedIn') === 'true') {
+        localStorage.removeItem('justLoggedIn');
+
+        const loadingTitle = pageLoadingOverlay?.querySelector('.loading-title');
+        if (loadingTitle) loadingTitle.textContent = '登录成功';
+
+        const pageLoadingText = document.getElementById('pageLoadingText');
+        if (pageLoadingText) pageLoadingText.textContent = '正在进入首页...';
+
+        pageLoadingOverlay.classList.add('show');
+
+        window.__justLoggedIn = true;
+        setTimeout(() => {
+            pageLoadingOverlay.classList.remove('show');
+            window.__justLoggedIn = false;
+            if (loadingTitle) loadingTitle.textContent = '正在加载...';
+            if (pageLoadingText) pageLoadingText.textContent = '正在准备页面内容';
+        }, 1500);
+    }
+
+    const sidebarLinks = document.querySelectorAll('.sidebar .nav-link[href]');
+
+    const pageNames = {
+        'home': '首页',
+        'car_list': '汽车列表',
+        'car_detail': '汽车详情',
+        'car_market_analysis': '市场分析',
+        'car_sales_analysis': '销量分析',
+        'clustering': '聚类分析',
+        'wordcloud': '情感分析',
+        'car_warning': '预警功能',
+        'car_comparison': '汽车对比',
+        'car_recommendations': '个性化推荐',
+        'changeSelfInfo': '修改信息',
+        'changePassword': '修改密码',
+        'spider_management': '爬虫管理'
+    };
+
+    sidebarLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        if (!href || href === '#' || href.startsWith('http')) return;
+
+        e.preventDefault();
+        let pageName = '页面';
+        const span = this.querySelector('span');
+        if (span) {
+            pageName = span.textContent.trim();
+        } else {
+            if (href.includes('car_list')) pageName = '汽车列表';
+            else if (href.includes('car_market_analysis')) pageName = '市场分析';
+            else if (href.includes('car_sales_analysis')) pageName = '销量分析';
+        }
+        const pageLoadingText = document.getElementById('pageLoadingText');
+        if (pageLoadingText) {
+            pageLoadingText.textContent = `正在加载${pageName}...`;
+        }
+
+        const pageLoadingOverlay = document.getElementById('pageLoadingOverlay');
+        if (pageLoadingOverlay) {
+            pageLoadingOverlay.classList.add('show');
+        }
+
+        setTimeout(() => {
+            window.location.href = href;
+        }, 800);
+    });
+});
+    window.addEventListener('load', () => {
+        if (window.__justLoggedIn) return;
+
+        if (pageLoadingOverlay) {
+            pageLoadingOverlay.classList.remove('show');
+        }
+    });
+});
+
+function initTheme() {
+    const theme = localStorage.getItem(THEME_KEY) || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon(theme);
+}
+
+function updateThemeIcon(theme) {
+    const icon = document.getElementById('themeIcon');
+    icon.className = theme === 'dark' ? 'bi bi-moon' : 'bi bi-sun';
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(THEME_KEY, next);
+    updateThemeIcon(next);
+}
+
+function loadChatHistory() {
+    const h = localStorage.getItem(STORAGE_KEY);
+    if(h) document.getElementById('chatContent').innerHTML = JSON.parse(h);
+}
+function saveChatHistory() {
+    const c = document.getElementById('chatContent');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(c.innerHTML));
+}
+function clearChatHistory() { localStorage.removeItem(STORAGE_KEY); }
+
+function formatAnswer(t) {
+    return t?.replace(/###\s+/g,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/---+/g,'\n') || '';
+}
+
+function startThinkingTimer(id) {
+    thinkingStartTime = Date.now();
+    thinkingTimer = setInterval(() => {
+        const el = document.getElementById(id);
+        if(!el) return;
+        const s = Math.floor((Date.now()-thinkingStartTime)/1000);
+        const html = `<div class="spinner"></div>正在思考中... 已用时 ${s} 秒`;
+        const span = el.querySelector('span');
+        if(span) span.innerHTML = html;
+    }, 1000);
+}
+
+function stopThinkingTimer() {
+    clearInterval(thinkingTimer);
+    thinkingTimer = null;
+    return ((Date.now()-thinkingStartTime)/1000).toFixed(1);
+}
+
+function sendMessage() {
+    const i = document.getElementById('chatInput');
+    const q = i.value.trim();
+    if(!q) return;
+
+    const c = document.getElementById('chatContent');
+    c.innerHTML += `
+        <div class="user-message">
+            <span>${q.replace(/</g,'&lt;')}</span>
+            <img src="${USER_AVATAR}" class="avatar">
+        </div>
+    `;
+    i.value = '';
+    c.scrollTop = c.scrollHeight;
+    saveChatHistory();
+
+    const lid = 'loading-'+Date.now();
+    c.innerHTML += `
+        <div class="ai-message loading-message" id="${lid}">
+            <div class="avatar"><i class="bi bi-robot"></i></div>
+            <span><div class="spinner"></div>正在思考中... 已用时 0 秒</span>
+        </div>
+    `;
+    c.scrollTop = c.scrollHeight;
+    startThinkingTimer(lid);
+
+    fetch('/app/api/ai_chat/', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({question:q})
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        const cost = stopThinkingTimer();
+        document.getElementById(lid)?.remove();
+        let rpy;
+        if(d.code===0){
+            const f = formatAnswer(d.data);
+            rpy = `<span>${f.replace(/\n/g,'<br>')}<br><br><small style="color:#94a3b8">🤖 耗时 ${cost}s</small></span>`;
+        }else{
+            rpy = `<span class="text-danger">错误：${d.msg}</span>`;
+        }
+        c.innerHTML += `
+            <div class="ai-message">
+                <div class="avatar"><i class="bi bi-robot"></i></div>${rpy}
+            </div>
+        `;
+        c.scrollTop = c.scrollHeight;
+        saveChatHistory();
+    })
+    .catch(()=>{
+        stopThinkingTimer();
+        document.getElementById(lid)?.remove();
+        c.innerHTML += `
+            <div class="ai-message">
+                <div class="avatar"><i class="bi bi-robot"></i></div>
+                <span class="text-danger">请求失败</span>
+            </div>
+        `;
+        c.scrollTop = c.scrollHeight;
+        saveChatHistory();
+    });
+}
+
+let helpSteps = [];
+let currentStep = 0;
+
+document.getElementById('showHelpBtn').addEventListener('click', () => {
+    if (!helpSteps || helpSteps.length === 0) {
+        alert('当前页面未配置帮助引导');
+        return;
+    }
+    currentStep = 0;
+    showHelpStep();
+    document.getElementById('helpOverlay').classList.add('show');
+    document.getElementById('showHelpBtn').blur();
+});
+
+function showHelpStep() {
+    const step = helpSteps[currentStep];
+    const el = document.querySelector(step.selector);
+    if (!el) { nextHelpStep(); return; }
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+    setTimeout(() => {
+        const highlight = document.getElementById('helpHighlight');
+        const tooltip = document.getElementById('helpTooltip');
+        const text = document.querySelector('.help-text');
+        const stepCount = document.querySelector('.step-count');
+
+        const rect = el.getBoundingClientRect();
+        highlight.style.left = rect.left - 8 + 'px';
+        highlight.style.top = rect.top - 8 + 'px';
+        highlight.style.width = rect.width + 16 + 'px';
+        highlight.style.height = rect.height + 16 + 'px';
+
+        text.innerHTML = step.text;
+        stepCount.textContent = `${currentStep + 1}/${helpSteps.length}`;
+
+        if (step.selector === ".home-banner") {
+            tooltip.style.left = rect.left + "px";
+            tooltip.style.top = rect.bottom + 30 + "px";
+        }
+        else if (step.selector === ".hot-car-card") {
+            tooltip.style.right = rect.right + "px";
+        }
+        else if (step.selector === ".card:has(.bi-grid-1x2-fill)" || step.selector === ".card:has(.bi-pie-chart)") {
+            tooltip.style.left = rect.left - 380 + "px";
+            tooltip.style.top = rect.top + "px";
+        }
+        else if (step.selector === "#aiChatBtn") {
+            tooltip.style.left = rect.left - 380 + "px";
+            tooltip.style.top = rect.top - 30 + "px";
+        }
+        else if (step.selector === "#themeToggle") {
+            tooltip.style.top = rect.top + 53 + "px";
+        }
+        else if (step.selector === ".card:has(#citySalesMapChart)") {
+            tooltip.style.left = rect.left +"px";
+            tooltip.style.top = rect.bottom + "px";
+        }
+        else if (step.selector === ".card:has(#priceDistributionChart)") {
+            tooltip.style.right = rect.right + "px";
+        }
+        else if (step.selector === ".card:has(#monthlyNewCarChart)") {
+            tooltip.style.left = rect.left - 300 + "px";
+        }
+        else if (step.selector === "#exportMarketReportBtn") {
+            tooltip.style.left = rect.left - 300 + "px";
+            tooltip.style.top = rect.top - 10 + "px";
+        }
+        else if (step.selector === ".card:has(#energyComparisonChart)") {
+            tooltip.style.right = rect.right + "px";
+        }
+        else if (step.selector === ".card:has(#energySalesChart)") {
+            tooltip.style.left = rect.left - 300 + "px";
+        }
+        else if (step.selector === "#exportSalesReportBtn") {
+            tooltip.style.left = rect.left - 300 + "px";
+            tooltip.style.top = rect.top - 10 + "px";
+        }
+        else if (step.selector === ".card:has(#clusterPie)"||step.selector === "#pieType") {
+            tooltip.style.left = rect.left - 375 + "px";
+            tooltip.style.top = rect.top -10 + "px";
+        }
+        else if (step.selector === ".card:has(.help-target-recommend)") {
+            tooltip.style.left = rect.left + 550 + "px";
+            tooltip.style.top = rect.top -10 + "px";
+        }
+        else if (step.selector === "#operationLog") {
+            tooltip.style.right = rect.right + "px";
+        }
+        else if (step.selector === "#clearLogBtn") {
+            tooltip.style.left = rect.left - 300 + "px";
+            tooltip.style.top = rect.top -10 + "px";
+        }
+        else if (step.selector === "#configToggleBtn") {
+            tooltip.style.left = rect.left - 380 + "px";
+            tooltip.style.top = rect.top + "px";
+        }
+        else {
+            tooltip.style.left = rect.left - 10 +"px";
+            tooltip.style.top = rect.bottom + 20 + "px";
+        }
+
+    }, 800);
+}
+
+function nextHelpStep() {
+    currentStep++;
+    if (currentStep >= helpSteps.length) { closeHelp(); return; }
+    showHelpStep();
+}
+
+function prevHelpStep() {
+    currentStep--;
+    if (currentStep < 0) currentStep = 0;
+    showHelpStep();
+}
+
+function closeHelp() {
+    document.getElementById('helpOverlay').classList.remove('show');
+}
+
+document.querySelector('.btn-next').addEventListener('click', nextHelpStep);
+document.querySelector('.btn-prev').addEventListener('click', prevHelpStep);
+document.querySelector('.btn-close-help').addEventListener('click', closeHelp);
+</script>
+
+<!-- 页面加载动画 -->
+<div class="page-loading-overlay" id="pageLoadingOverlay">
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <h3 class="loading-title">正在加载...</h3>
+        <p class="loading-subtitle" id="pageLoadingText">正在准备页面内容</p>
+        <div class="loading-progress">
+            <div class="progress-bar"></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

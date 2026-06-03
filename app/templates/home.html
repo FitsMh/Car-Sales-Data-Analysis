@@ -1,0 +1,752 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}汽车数据分析与智能推荐平台{% endblock %}
+
+{% block content %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.querySelector('.sidebar');
+    const main = document.querySelector('#main');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+
+    const prevUrl = document.referrer || '';
+    const currentUrl = window.location.pathname;
+
+    const isFromLogin = prevUrl.includes('/login/');
+    const isRefresh = prevUrl === '';
+    const isHome = currentUrl === '/app/home/';
+    const skipAnimation = isHome && (isRefresh || isFromLogin);
+
+    if (sidebar) {
+        if (skipAnimation) {
+            sidebar.style.transform = 'translateX(-100%)';
+            if (main) main.style.marginLeft = '0';
+        } else {
+            setTimeout(() => {
+                sidebar.style.transform = 'translateX(-100%)';
+                if (main) main.style.marginLeft = '0';
+            }, 50);
+        }
+
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '<i class="bi bi-layout-sidebar-inset me-1"></i>了解平台功能';
+        }
+    }
+
+    window.toggleSidebar = function() {
+        const sidebar = document.querySelector('.sidebar');
+        const main = document.querySelector('#main');
+        const toggleBtn = document.getElementById('sidebarToggleBtn');
+
+        if (!sidebar || !main || !toggleBtn) return;
+
+        if (sidebar.style.transform === 'translateX(-100%)' || sidebar.style.transform === '') {
+            sidebar.style.transform = 'translateX(0)';
+            main.style.marginLeft = '260px';
+            toggleBtn.innerHTML = '<i class="bi bi-layout-sidebar-inset me-1"></i>隐藏侧边栏';
+        } else {
+            sidebar.style.transform = 'translateX(-100%)';
+            main.style.marginLeft = '0';
+            toggleBtn.innerHTML = '<i class="bi bi-layout-sidebar-inset me-1"></i>了解平台功能';
+        }
+    };
+
+    const canvas = document.getElementById('bannerCanvas');
+    const ctx = canvas.getContext('2d');
+    const banner = document.querySelector('.home-banner');
+
+    function resizeCanvas() {
+        canvas.width = banner.offsetWidth;
+        canvas.height = banner.offsetHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const particles = [];
+    const particleCount = 100;
+    const mouse = { x: null, y: null, radius: 150 };
+
+    banner.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    });
+
+    banner.addEventListener('mouseout', () => {
+        mouse.x = null;
+        mouse.y = null;
+    });
+
+    class Particle {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 2.5 + 0.8;
+            this.speedX = Math.random() * 0.5 - 0.25;
+            this.speedY = Math.random() * 0.5 - 0.25;
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+            if (mouse.x && mouse.y) {
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < mouse.radius) {
+                    const forceDirectionX = dx / distance;
+                    const forceDirectionY = dy / distance;
+                    const maxDistance = mouse.radius;
+                    const force = (maxDistance - distance) / maxDistance;
+                    const directionX = forceDirectionX * force * 0.6;
+                    const directionY = forceDirectionY * force * 0.6;
+                    this.x -= directionX;
+                    this.y -= directionY;
+                }
+            }
+        }
+        draw() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function init() {
+        particles.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+    }
+
+    function connectParticles() {
+        for (let a = 0; a < particles.length; a++) {
+            for (let b = a; b < particles.length; b++) {
+                const dx = particles[a].x - particles[b].x;
+                const dy = particles[a].y - particles[b].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 90) {
+                    const opacity = 1 - distance / 90;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(particles[a].x, particles[a].y);
+                    ctx.lineTo(particles[b].x, particles[b].y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const p of particles) {
+            p.update();
+            p.draw();
+        }
+        connectParticles();
+        requestAnimationFrame(animate);
+    }
+
+    init();
+    animate();
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    helpSteps = [
+        {
+            selector: '.home-banner',
+            text: '这里是平台欢迎首页 Banner，点击按钮可快速展开/收起侧边功能栏，了解全部功能入口。'
+        },
+        {
+            selector: '.hot-car-card',
+            text: '热门车型推荐区域，支持切换销量热门、重磅新车，可快速查看对应车型并进入详情页。'
+        },
+        {
+            selector: '.card:has(.bi-grid-1x2-fill)',
+            text: '功能快捷入口，支持一键跳转到汽车查询、数据大屏、智能推荐、市场分析、销量分析、情感分析等功能。'
+        },
+        {
+            selector: '.card:has(.bi-pie-chart)',
+            text: '平台数据概览，实时展示当前系统收录的总车型数、品牌数、评论数、数据总量，可点击更新刷新数据。'
+        },
+        {
+            selector: '#aiChatBtn',
+            text: 'AI 智能助手，点击可打开对话窗口，支持数据分析咨询、功能使用帮助、汽车相关问题解答。'
+        },
+        {
+            selector: '#themeToggle',
+            text: '主题切换按钮，点击可在日间模式 / 夜间模式之间自由切换，保护视觉体验。'
+        }
+    ];
+    helpDelay = 205;
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const tabSales = document.getElementById('tabSales');
+    const tabNew = document.getElementById('tabNew');
+    const listSales = document.getElementById('salesList');
+    const listNew = document.getElementById('newList');
+
+    tabSales.addEventListener('click', function(){
+        tabSales.classList.add('active');
+        tabNew.classList.remove('active');
+        listSales.style.display = 'block';
+        listNew.style.display = 'none';
+    });
+
+    tabNew.addEventListener('click', function(){
+        tabNew.classList.add('active');
+        tabSales.classList.remove('active');
+        listNew.style.display = 'block';
+        listSales.style.display = 'none';
+    });
+});
+</script>
+
+<style>
+.car-detail-text-btn {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--biz-normal);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+.car-detail-text-btn:hover {
+    color: var(--biz-dark);
+}
+.car-detail-text-btn:hover i {
+    transform: translateX(3px);
+}
+#sidebarToggleBtn {
+    transition: all 0.3s ease !important;
+}
+#sidebarToggleBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+* {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    box-sizing: border-box;
+}
+body {
+    background-color: var(--biz-gray) !important;
+    color: var(--biz-text) !important;
+}
+.section {
+    margin-bottom: 32px;
+}
+
+.card {
+    border: 1px solid var(--biz-border) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06) !important;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    background: var(--biz-card-bg) !important;
+    color: var(--biz-card-text) !important;
+    position: relative;
+}
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.card:hover {
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.1) !important;
+    transform: translateY(-6px) scale(1.01);
+}
+.card:hover::before {
+    opacity: 1;
+}
+
+.home-banner {
+    position: relative;
+    background: linear-gradient(135deg, #2E40C4 0%, #5B73FF 100%);
+    color: white;
+    padding: 60px 45px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(46, 64, 196, 0.25);
+}
+[data-theme="dark"] .home-banner {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    box-shadow: 0 15px 40px rgba(49, 46, 129, 0.35);
+}
+#bannerCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+}
+.banner-content {
+    position: relative;
+    z-index: 1;
+}
+.banner-title {
+    font-size: 38px;
+    font-weight: 800;
+    margin-bottom: 14px;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+}
+.banner-subtitle {
+    font-size: 18px;
+    opacity: 0.95;
+    margin-bottom: 36px;
+    max-width: 550px;
+    font-weight: 400;
+}
+.banner-btn {
+    padding: 14px 32px;
+    border-radius: 60px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    backdrop-filter: blur(12px);
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+.banner-btn:hover {
+    background: rgba(255,255,255,0.28);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 28px;
+}
+@media (max-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card-title-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 28px 18px;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--biz-dark);
+}
+.card-title-wrap i {
+    color: var(--biz-normal);
+    margin-right: 10px;
+    font-size: 22px;
+}
+
+.car-tabs {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+.car-tab {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--biz-text);
+    cursor: pointer;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    margin-top: 3.5px;
+}
+.car-tab.active {
+    color: var(--biz-normal);
+    border-color: var(--biz-normal);
+}
+.car-tab:hover {
+    color: var(--biz-normal);
+}
+
+.car-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--biz-border);
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+.car-item:hover {
+    background: var(--biz-light);
+    transform: translateX(4px);
+}
+.car-item:last-child {
+    border-bottom: none;
+}
+.car-img {
+    width: 85px;
+    height: 65px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: var(--biz-light);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.car-info h5 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--biz-card-text);
+    margin: 0 0 5px;
+}
+.car-info p {
+    font-size: 14px;
+    color: var(--biz-text);
+    margin: 0;
+}
+.car-sales {
+    font-size: 14px;
+    color: var(--biz-normal);
+    font-weight: 700;
+    margin-top: 5px;
+}
+
+.quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 0 24px 24px;
+}
+.quick-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 12px;
+    border-radius: 16px;
+    text-decoration: none;
+    color: var(--biz-card-text);
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.quick-item:hover {
+    background: var(--biz-light);
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+}
+.quick-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+}
+.quick-item:hover .quick-icon {
+    transform: scale(1.1);
+}
+.quick-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--biz-card-text);
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--biz-border);
+    transition: background 0.3s ease;
+}
+.stat-item:hover {
+    background: var(--biz-light);
+}
+.stat-item:last-child {
+    border-bottom: none;
+}
+.stat-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--biz-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--biz-normal);
+    font-size: 18px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+.stat-name {
+    font-size: 15px;
+    color: var(--biz-text);
+    font-weight: 500;
+}
+.stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--biz-card-text);
+}
+.stat-value span {
+    font-size: 13px;
+    color: var(--biz-text);
+    font-weight: 400;
+    margin-left: 5px;
+}
+.stat-up {
+    color: #10b981 !important;
+}
+
+.btn-update {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--biz-normal);
+    background: var(--biz-light);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+}
+.btn-update:hover {
+    background: var(--biz-light);
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+.btn-update i {
+    font-size: 14px;
+}
+
+.toast-notice {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    padding: 12px 24px;
+    background: var(--biz-card-bg);
+    color: var(--biz-card-text);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s ease;
+    border: 1px solid var(--biz-border);
+}
+.toast-notice.show {
+    opacity: 1;
+    top: 32px;
+}
+</style>
+
+<div class="toast-notice" id="toast"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const toast = document.getElementById('toast');
+    const msg = `{% for message in messages %}{{ message }}{% endfor %}`.trim();
+    if(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2000);
+    }
+});
+</script>
+
+<div class="home-banner mb-5">
+    <canvas id="bannerCanvas"></canvas>
+    <div class="banner-content">
+        <div class="banner-title">汽车数据分析与智能推荐平台</div>
+        <div class="banner-subtitle">一站式汽车数据查询、智能对比、销量分析与个性化推荐服务</div>
+        <button class="banner-btn" id="sidebarToggleBtn" onclick="toggleSidebar()">
+            <i class="bi bi-layout-sidebar-inset"></i>了解平台功能
+        </button>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card hot-car-card">
+        <div class="card-title-wrap">
+            <div class="car-tabs">
+                <span><i class="bi bi-car-front"></i>热门车型推荐</span>
+                <div class="car-tab active" id="tabSales">销量热门</div>
+                <div class="car-tab" id="tabNew">重磅新车</div>
+            </div>
+        </div>
+
+        <div id="salesList">
+            {% for car in popular_cars %}
+            <div class="car-item">
+                <img src="{{ car.carimg }}" class="car-img" alt="{{ car.carname }}" loading="lazy">
+                <div class="car-info flex-1">
+                    <h5>{{ car.brand }} {{ car.carname }}</h5>
+                    <p>市场认可度高 · 销量热门车型</p>
+                    <div class="car-sales">累计销量：{{ car.salevolume }} 辆</div>
+                </div>
+                <a href="{% url 'car_detail' car.id %}?city=all&month=0" class="car-detail-text-btn">
+                    查看详情
+                </a>
+            </div>
+            {% empty %}
+            <div class="car-item">
+                <div class="car-img d-flex align-items-center justify-content-center text-muted">
+                    <i class="bi bi-car-front"></i>
+                </div>
+                <div class="car-info">
+                    <h5>暂无车型数据</h5>
+                    <p>后台数据加载中，敬请期待</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="newList" style="display: none;">
+            {% for car in new_recommend_cars %}
+            <div class="car-item">
+                <img src="{{ car.carimg }}" class="car-img" alt="{{ car.carname }}" loading="lazy">
+                <div class="car-info flex-1">
+                    <h5>{{ car.brand }} {{ car.carname }}</h5>
+                    <p>市场关注度高 · 重磅热门车型</p>
+                    <div class="car-sales">上市：{{ car.marketime }}</div>
+                </div>
+                <a href="{% url 'car_detail' car.id %}?city=all&month=0" class="car-detail-text-btn">
+                    查看详情
+                </a>
+            </div>
+            {% empty %}
+            <div class="car-item">
+                <div class="car-img d-flex align-items-center justify-content-center text-muted">
+                    <i class="bi bi-car-front"></i>
+                </div>
+                <div class="car-info">
+                    <h5>暂无新车数据</h5>
+                    <p>暂无最新上市车型</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div>
+        <div class="card mb-4">
+            <div class="card-title-wrap">
+                <span><i class="bi bi-grid-1x2-fill"></i>功能快捷入口</span>
+            </div>
+            <div class="quick-grid">
+                <a href="{% url 'car_list' %}" class="quick-item">
+                    <div class="quick-icon" style="background: linear-gradient(135deg, #1E40AF, #3B82F6);">
+                        <i class="bi bi-car-front-fill"></i>
+                    </div>
+                    <span class="quick-label">汽车查询</span>
+                </a>
+                <a href="{% url 'largescreen' %}" class="quick-item">
+                    <div class="quick-icon" style="background: linear-gradient(135deg, #0F172A, #1E293B);">
+                        <i class="bi bi-laptop-fill"></i>
+                    </div>
+                    <span class="quick-label">数据大屏</span>
+                </a>
+                <a href="{% url 'car_recommendations' %}" class="quick-item">
+                    <div class="quick-icon" style="background: linear-gradient(135deg, #7C3AED, #8B5CF6);">
+                        <i class="bi bi-magic"></i>
+                    </div>
+                    <span class="quick-label">智能推荐</span>
+                </a>
+                <a href="{% url 'car_market_analysis' %}" class="quick-item">
+                    <div class="quick-icon" style="background: linear-gradient(135deg, #0EA5E9, #38BDF8);">
+                        <i class="bi bi-bar-chart-line-fill"></i>
+                    </div>
+                    <span class="quick-label">市场分析</span>
+                </a>
+                <a href="{% url 'car_sales_analysis' %}" class="quick-item">
+                    <div class="quick-icon" style="background: linear-gradient(135deg, #10B981, #34D399);">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <span class="quick-label">销量分析</span>
+                </a>
+                <a href="{% url 'wordcloud' %}" class="quick-item">
+                    <div class="quick-icon" style="background: linear-gradient(135deg, #F59E0B, #FBBF24);">
+                        <i class="bi bi-chat-square-heart-fill"></i>
+                    </div>
+                    <span class="quick-label">情感分析</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title-wrap">
+                <span><i class="bi bi-pie-chart"></i> 平台数据概览</span>
+                <a href="?update_stats=1" class="btn-update" onclick="return confirm('确定要更新统计数据吗？')">
+                    <i class="bi bi-arrow-clockwise"></i> 更新数据
+                </a>
+            </div>
+            <div class="stat-item">
+                <div class="stat-left">
+                    <div class="stat-icon"><i class="bi bi-car-front"></i></div>
+                    <span class="stat-name">去重收录车型</span>
+                </div>
+                <span class="stat-value">{{ total_unique_cars }}<span>款</span></span>
+            </div>
+            <div class="stat-item">
+                <div class="stat-left">
+                    <div class="stat-icon"><i class="bi bi-building"></i></div>
+                    <span class="stat-name">平台收录品牌</span>
+                </div>
+                <span class="stat-value">{{ total_brands }}<span>个</span></span>
+            </div>
+            <div class="stat-item">
+                <div class="stat-left">
+                    <div class="stat-icon"><i class="bi bi-chat-dots"></i></div>
+                    <span class="stat-name">平台总评论数</span>
+                </div>
+                <span class="stat-value">{{ total_comments }}<span>条</span></span>
+            </div>
+            <div class="stat-item">
+                <div class="stat-left">
+                    <div class="stat-icon"><i class="bi bi-database"></i></div>
+                    <span class="stat-name">平台总数据条目</span>
+                </div>
+                <span class="stat-value">{{ total_data_rows }}<span>条</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block echarts %}
+{% endblock %}

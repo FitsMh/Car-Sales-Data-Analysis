@@ -1,0 +1,81 @@
+{% extends 'base_login.html' %}
+
+{% block title %}注册 - 汽车销售大数据分析系统{% endblock %}
+
+{% block form_title %}创建账号{% endblock %}
+{% block form_subtitle %}请填写信息完成注册{% endblock %}
+
+{% block content %}
+<form method="post" action="{% url 'register' %}" id="registerForm">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <div class="input-wrapper">
+            <i class="bi bi-person input-icon"></i>
+            <input type="text"
+                   name="username"
+                   id="reg-username"
+                   placeholder=" "
+                   required
+                   autocomplete="username">
+            <label for="reg-username">用户名</label>
+            <div class="input-highlight"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="input-wrapper">
+            <i class="bi bi-lock input-icon"></i>
+            <input type="password"
+                   name="password"
+                   id="reg-password"
+                   placeholder=" "
+                   required
+                   autocomplete="new-password">
+            <label for="reg-password">密码</label>
+            <div class="input-highlight"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="input-wrapper">
+            <i class="bi bi-lock-fill input-icon"></i>
+            <input type="password"
+                   name="confirmPassword"
+                   id="reg-confirm-password"
+                   placeholder=" "
+                   required
+                   autocomplete="new-password">
+            <label for="reg-confirm-password">确认密码</label>
+            <div class="input-highlight"></div>
+        </div>
+    </div>
+
+    <div class="form-check mb-4" style="padding-left: 1.5rem; margin-top: 8px;">
+        <input class="form-check-input" name="terms" type="checkbox" id="acceptTerms" required>
+        <label class="form-check-label" for="acceptTerms" style="color: var(--text-secondary-dark); font-size: 14px;">
+            我同意 <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 500;">用户协议</a> 和 <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 500;">隐私政策</a>
+        </label>
+    </div>
+
+    <button type="submit" class="btn-login" id="registerBtn">
+        <span class="btn-text">立即注册</span>
+        <span class="btn-loader" style="display: none;">
+            <i class="bi bi-arrow-repeat spin"></i> 注册中...
+        </span>
+    </button>
+</form>
+
+<div class="login-footer">
+    已有账号？<a href="{% url 'login' %}">前去登录</a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginContainer = document.getElementById('loginContainer');
+    if (loginContainer && loginContainer.classList.contains('collapsed')) {
+        loginContainer.classList.remove('collapsed');
+    }
+});
+</script>
+{% endblock %}

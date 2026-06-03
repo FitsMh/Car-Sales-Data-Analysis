@@ -1,0 +1,868 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}市场分析{% endblock %}
+
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">市场分析</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" style="color: var(--biz-normal) !important;">首页</a></li>
+                <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">市场分析</li>
+            </ol>
+        </nav>
+    </div>
+
+    {% if selected_city != 'all' or selected_month != '0' %}
+    <div style="margin-right: 20px; font-size: 13px; color: var(--biz-text); background: var(--biz-light); padding: 4px 10px; border-radius: 12px; white-space: nowrap; border: 1px solid var(--biz-border);">
+        {% if selected_city != 'all' %}
+            <span style="color: var(--biz-normal); font-weight: 500;">城市数据仅支持查看上个月</span>，地图、上市趋势等高级功能仅在【全国】模式下可用
+        {% else %}
+            地图、上市趋势等高级功能仅在【全国+最新月份】模式下可用
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 me-3">
+        <select id="citySelect" class="form-select form-select-sm" style="width: 160px; background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);">
+            {% for city_item in city_options %}
+            <option value="{{ city_item.key }}" {% if city_item.key == selected_city %}selected{% endif %}>{{ city_item.label }}</option>
+            {% endfor %}
+        </select>
+
+        <select id="monthSelect" class="form-select form-select-sm" style="width: 160px; background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);">
+            {% for month_item in month_options %}
+            <option value="{{ month_item.key }}" {% if month_item.key == selected_month %}selected{% endif %}>{{ month_item.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="d-flex gap-2 ms-2">
+        <a id="exportMarketReportBtn"
+           href="{% url 'export_car_market_report' %}?city={{ selected_city }}&month={{ selected_month }}"
+           class="btn btn-sm" style="background-color:var(--biz-normal);color:white;border-radius:8px;">
+            <i class="bi bi-download"></i> 导出市场分析报告
+        </a>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: all 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.col-lg-6 > .card {
+    height: 550px !important;
+    display: flex;
+    flex-direction: column;
+}
+.col-lg-6 .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.col-lg-6 .echarts-container {
+    height: 420px !important;
+    flex: 1;
+    width: 100%;
+}
+
+.col-lg-12 > .card {
+    height: auto !important;
+}
+#citySalesMapChart {
+    width: 100%;
+    height: 600px !important;
+}
+
+.col-lg-12.price-full-width > .card {
+    height: 400px !important;
+    display: flex;
+    flex-direction: column;
+}
+.col-lg-12.price-full-width .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.col-lg-12.price-full-width #priceDistributionChart {
+    height: 300px !important;
+    flex: 1;
+    width: 100%;
+}
+
+.col-lg-12.boxplot-full-width > .card {
+    height: 550px !important;
+    display: flex;
+    flex-direction: column;
+}
+.col-lg-12.boxplot-full-width .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.col-lg-12.boxplot-full-width #priceBoxplotChart {
+    height: 420px !important;
+    flex: 1;
+    width: 100%;
+}
+
+.form-select:focus {
+    border-color: var(--biz-normal) !important;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.2) !important;
+}
+
+.form-select:disabled,
+.form-select[disabled] {
+    background-color: #eff6ff !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+
+[data-theme="dark"] .form-select option {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .form-select:disabled {
+    background-color: #2d3748 !important;
+    color: #6b7280 !important;
+    border-color: #4a5568 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+}
+
+.boxplot-note {
+    font-size: 12px;
+    color: var(--biz-text);
+    opacity: 0.8;
+    margin-top: 2px;
+}
+</style>
+
+<section class="section">
+    <div class="row">
+        {% if show_map_and_trend %}
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">全国热门城市汽车销量分布</h5>
+                    <p class="text-muted">本模块展示全国重点热门城市汽车销量分布，以城市为单位替代省份进行更精细的区域市场体现，数据为上一个月最新销售统计，可直观反映各区域市场热度与消费集中情况。</p>
+                    <div id="citySalesMapChart"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not show_map_and_trend %}
+        <div class="col-lg-12 price-full-width">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">价格区间分布</h5>
+                    <p class="text-muted">分析不同价格区间的车型数量分布，反映市场价格结构和消费者购买力分布。数据来源于车型官方指导价格。</p>
+                    <div id="priceDistributionChart"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">制造商市场份额</h5>
+                    <p class="text-muted">展示各大汽车制造商的市场占有率，基于各制造商旗下所有车型的累计销量计算。数据显示市场集中度和主要竞争者。</p>
+                    <div id="marketShareChart" class="echarts-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">车型分布</h5>
+                    <p class="text-muted">展示不同车型（如轿车、SUV、MPV等）的市场分布比例，反映消费者对不同类型汽车的偏好和市场需求。</p>
+                    <div id="modelDistributionChart" class="echarts-container"></div>
+                </div>
+            </div>
+        </div>
+
+        {% if show_map_and_trend %}
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">价格区间分布</h5>
+                    <p class="text-muted">分析不同价格区间的车型数量分布，反映市场价格结构和消费者购买力分布。数据来源于车型官方指导价格。</p>
+                    <div id="priceDistributionChart" class="echarts-container"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if show_map_and_trend %}
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">近6个月新车型上市趋势</h5>
+                    <p class="text-muted">统计近6个月每月新车型上市数量，直观反映市场新品投放节奏与热度变化趋势。</p>
+                    <p class="text-primary small"><b>数据说明：</b>本图表以【半年前 ~ 1个月前】为统计周期。</p>
+                    <div id="monthlyNewCarChart" class="echarts-container"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    
+        <div class="col-lg-12 boxplot-full-width">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">各能源类型价格分布箱线图</h5>
+                    <p class="text-muted">
+                        展示不同能源类型车型的最低指导价格分布情况（单位：万元）。
+                        <br>箱体代表25%~75%分位数区间，中间横线为中位数，须线延伸至1.5倍IQR范围内的最值。
+                        <span class="text-danger small">数据过滤：已自动过滤最低价格 ≤ 1万元（0元/异常标价）和 ≥ 500万元（天价限量车）的车型。</span>
+                    </p>
+                    <div id="priceBoxplotChart"></div>
+                    <p class="boxplot-note">
+                        <i class="bi bi-info-circle"></i>
+                        有效数据：<b>{{ price_boxplot.active_count }}</b> 条，已过滤异常数据：<b>{{ price_boxplot.filtered_count }}</b> 条（共 {{ price_boxplot.total_count }} 条）
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block echarts %}
+<script>
+function getCurrentTheme() {
+    return document.documentElement.getAttribute('data-theme') || 'light';
+}
+
+function getChartThemeConfig() {
+    const isDark = getCurrentTheme() === 'dark';
+    return {
+        textColor: isDark ? '#f1f5f9' : '#1e293b',
+        axisColor: isDark ? '#475569' : '#e2e8f0',
+        tooltipBg: isDark ? '#1e293b' : '#ffffff',
+        tooltipBorder: isDark ? '#334155' : '#eee',
+        splitColor: isDark ? '#334155' : '#eee'
+    };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const citySelect = document.getElementById('citySelect');
+    const monthSelect = document.getElementById('monthSelect');
+
+    updateMonthSelectStatus();
+
+    citySelect.addEventListener('change', function() {
+        updateMonthSelectStatus();
+        submitFilter();
+    });
+
+    monthSelect.addEventListener('change', function() {
+        submitFilter();
+    });
+
+    function updateMonthSelectStatus() {
+        if (citySelect.value !== 'all') {
+            monthSelect.value = '0';
+            monthSelect.disabled = true;
+        } else {
+            monthSelect.disabled = false;
+        }
+    }
+
+    function submitFilter() {
+        const city = citySelect.value;
+        const month = monthSelect.value;
+        window.location.href = `?city=${city}&month=${month}`;
+    }
+
+    initAllCharts();
+
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                refreshAllCharts();
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+});
+
+let marketShareChart, priceDistributionChart, modelDistributionChart;
+let citySalesMapChart, monthlyNewCarChart;
+let priceBoxplotChart; 
+
+function initAllCharts() {
+    renderMarketShare();
+    renderPriceDistribution();
+    renderModelDistribution();
+    renderPriceBoxplot(); 
+
+    {% if show_map_and_trend %}
+    renderCityMap();
+    renderMonthlyNewCar();
+    {% endif %}
+}
+
+function refreshAllCharts() {
+    renderMarketShare();
+    renderPriceDistribution();
+    renderModelDistribution();
+    renderPriceBoxplot(); 
+
+    {% if show_map_and_trend %}
+    renderCityMap();
+    renderMonthlyNewCar();
+    {% endif %}
+}
+
+function renderMarketShare() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('marketShareChart');
+    if(!dom) return;
+
+    if(!marketShareChart) marketShareChart = echarts.init(dom);
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+                var logo = params.data.logo;
+                var logoHtml = logo ? `<div style="text-align:center; margin-bottom:5px;">
+                                        <img src="${logo}" style="width:32px; height:32px; object-fit:contain;">
+                                      </div>` : '';
+                return `${logoHtml}
+                        <div style="text-align:center">${params.seriesName}</div>
+                        <div style="text-align:center">${params.name}：${params.value}%（占比${params.percent}%）</div>`;
+            },
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            borderWidth: 1,
+            textStyle: { color: theme.textColor },
+            padding: 12
+        },
+        legend: {
+            orient: 'vertical',
+            left: 10,
+            top: 'center',
+            textStyle: { fontSize: 12, color: theme.textColor }
+        },
+        series: [{
+            name: '市场份额',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['55%', '50%'],
+            roseType: false,
+            avoidLabelOverlap: true,
+            itemStyle: {
+                borderRadius: 6,
+                borderColor: 'transparent',
+                borderWidth: 2
+            },
+            label: {
+                show: true,
+                position: 'inside',
+                formatter: '{d}%',
+                fontSize: 11,
+                color: '#fff',
+                fontWeight: 'bold'
+            },
+            labelLine: { show: false },
+            data: [
+                {% for manufacturer in market_share.manufacturers|slice:":10" %}
+                {% with share=market_share.market_shares|index:forloop.counter0 logo=market_share.brand_imgs|index:forloop.counter0 %}
+                {
+                    value: {{ share }},
+                    name: '{{ manufacturer|safe }}',
+                    logo: '{{ logo|default:""|safe }}'
+                }{% if not forloop.last %},{% endif %}
+                {% endwith %}
+                {% endfor %}
+            ]
+        }]
+    };
+    marketShareChart.setOption(option);
+}
+
+function renderPriceDistribution() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('priceDistributionChart');
+    if(!dom) return;
+
+    if(!priceDistributionChart) priceDistributionChart = echarts.init(dom);
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            textStyle: { color: theme.textColor }
+        },
+        legend: {
+            data: ['车型数量'],
+            top: 10,
+            left: 'center',
+            textStyle: { fontSize: 13, color: theme.textColor }
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: {{ price_distribution.price_ranges|safe }},
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: { fontSize: 12, color: theme.textColor }
+        },
+        yAxis: {
+            type: 'value',
+            name: '车型数量（款）',
+            nameTextStyle: { fontSize: 12, color: theme.textColor }, 
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: { fontSize: 12, color: theme.textColor },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        series: [{
+            name: '车型数量',
+            type: 'bar',
+            data: {{ price_distribution.counts|safe }},
+            borderRadius: 6,
+            barWidth: '50%',
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#4158D0' },
+                    { offset: 1, color: '#C56FD1' }
+                ])
+            }
+        }]
+    };
+    priceDistributionChart.setOption(option);
+}
+
+function renderModelDistribution() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('modelDistributionChart');
+    if(!dom) return;
+
+    if(!modelDistributionChart) modelDistributionChart = echarts.init(dom);
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            borderWidth: 1,
+            textStyle: { color: theme.textColor },
+            padding: 12,
+            formatter: '{a} <br/>{b}：{c} 辆<br/>占比：{d}%'
+        },
+        legend: {
+            orient: 'vertical',
+            left: 10,
+            top: 'center',
+            textStyle: { fontSize: 12, color: theme.textColor }
+        },
+        series: [{
+            name: '车型分布',
+            type: 'pie',
+            radius: ['0%', '70%'],
+            center: ['55%', '50%'],
+            avoidLabelOverlap: true,
+            itemStyle: {
+                borderRadius: 6,
+                borderColor: 'transparent',
+                borderWidth: 2
+            },
+            label: {
+                show: true,
+                position: 'inside',
+                formatter: '{d}%',
+                fontSize: 11,
+                color: '#fff',
+                fontWeight: 'bold'
+            },
+            labelLine: { show: false },
+            data: [
+                {% for model, count in model_distribution.car_models|slice:":10"|zip_lists:model_distribution.counts|slice:":10" %}
+                { value: {{ count }}, name: '{{ model }}' }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }]
+    };
+    modelDistributionChart.setOption(option);
+}
+
+{% if show_map_and_trend %}
+function renderCityMap() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('citySalesMapChart');
+    if(!dom) return;
+
+    if(!citySalesMapChart) citySalesMapChart = echarts.init(dom);
+    const option = {
+        backgroundColor: 'transparent',
+        title: {
+            text: '全国热门城市汽车销量',
+            left: 'center',
+            textStyle: { color: theme.textColor }
+        },
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            textStyle: { color: theme.textColor },
+            formatter: function(params) {
+                return params.name + '<br/>销量：' + params.value + ' 辆';
+            }
+        },
+        visualMap: {
+            min: 0,
+            max: 10000,
+            left: '10%',
+            bottom: '2%',
+            text: ['高销量', '低销量'],
+            textStyle: { color: theme.textColor },
+            calculable: true,
+            inRange: {
+                color: getCurrentTheme() === 'dark'
+                    ? ['#1e3a8a', '#3b82f6', '#60a5fa', '#93c5fd']
+                    : ['#eff6ff', '#bfdbfe', '#60a5fa', '#2563eb']
+            }
+        },
+        series: [{
+            name: '汽车销量',
+            type: 'map',
+            map: 'china',
+            roam: false,
+            zoom: 1.2,
+            label: {
+                show: true,
+                color: theme.textColor
+            },
+            itemStyle: {
+                borderColor: theme.axisColor
+            },
+            data: {{ city_sales_map|safe }}
+        }]
+    };
+    citySalesMapChart.setOption(option);
+}
+{% endif %}
+
+{% if show_map_and_trend %}
+function renderMonthlyNewCar() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('monthlyNewCarChart');
+    if(!dom) return;
+
+    if(!monthlyNewCarChart) monthlyNewCarChart = echarts.init(dom);
+    const months = {{ monthly_new_car_trend.months|safe }};
+    const counts = {{ monthly_new_car_trend.counts|safe }};
+
+    const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            textStyle: { color: theme.textColor },
+            formatter: '{b}<br/>上市车型：{c} 款'
+        },
+        legend: {
+            data: ['上市车型数'],
+            top: 10,
+            left: 'center',
+            textStyle: { fontSize: 13, color: theme.textColor }
+        },
+        grid: { left: '4%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: months,
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: { fontSize: 12, color: theme.textColor }
+        },
+        yAxis: {
+            type: 'value',
+            name: '车型数量（款）',  
+            nameTextStyle: { fontSize: 12, color: theme.textColor }, 
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: { fontSize: 12, color: theme.textColor },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        series: [{
+            name: '上市车型数',
+            type: 'line',
+            data: counts,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: {
+                width: 3,
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                    { offset: 0, color: '#4158D0' },
+                    { offset: 1, color: '#C56FD1' }
+                ])
+            },
+            itemStyle: {
+                color: '#5269e0',
+                borderWidth: 2,
+                borderColor: '#fff',
+                shadowBlur: 6,
+                shadowColor: 'rgba(82,105,224,0.3)'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(65,88,208,0.2)' },
+                    { offset: 1, color: 'rgba(197,111,209,0.05)' }
+                ])
+            }
+        }]
+    };
+    monthlyNewCarChart.setOption(option);
+}
+{% endif %}
+
+function renderPriceBoxplot() {
+    const theme = getChartThemeConfig();
+    const dom = document.getElementById('priceBoxplotChart');
+    if(!dom) return;
+
+    if(!priceBoxplotChart) priceBoxplotChart = echarts.init(dom);
+    
+    var boxplotData = {{ price_boxplot_json|safe }};
+    var categories = boxplotData.categories;
+    var data = boxplotData.data;
+    var carNames = boxplotData.car_names || [];  
+    var stats = boxplotData.stats;
+    
+    var isDark = getCurrentTheme() === 'dark';
+    
+    var boxplotSeries = [];
+    var scatterData = [];
+
+    categories.forEach(function(category, index) {
+        if (stats[category] && stats[category].count > 0) {
+            var stat = stats[category];
+            boxplotSeries.push([
+                stat.min,
+                stat.q1,
+                stat.median,
+                stat.q3,
+                stat.max
+            ]);
+            
+            if (data[index]) {
+                var iqr = stat.q3 - stat.q1;
+                var lowerBound = stat.q1 - 1.5 * iqr;
+                var upperBound = stat.q3 + 1.5 * iqr;
+
+                data[index].forEach(function(value, idx) {
+                    var isOutlier = (value < lowerBound || value > upperBound);
+                    var carName = (carNames[index] && carNames[index][idx]) ? carNames[index][idx] : category;
+                    scatterData.push({
+                        name: carName,
+                        value: [index, value],
+                        itemStyle: {
+                            color: isOutlier ? '#ff4444' : (isDark ? '#93c5fd' : '#3b82f6'),
+                            borderColor: isOutlier ? '#cc0000' : (isDark ? '#60a5fa' : '#2563eb'),
+                            borderWidth: isOutlier ? 2 : 1,
+                            opacity: isOutlier ? 1 : 0.3
+                        },
+                        symbolSize: isOutlier ? 10 : 6
+                    });
+                });
+            }
+        }
+    });
+
+    var option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            borderWidth: 1,
+            textStyle: { color: theme.textColor },
+            padding: 12,
+            formatter: function(params) {
+                if (params.seriesType === 'boxplot') {
+                    var cat = categories[params.dataIndex];
+                    var stat = stats[cat];
+                    if (stat) {
+                        return `<div style="font-weight:bold;margin-bottom:8px;">${cat}</div>
+                                <div style="line-height:1.8;">
+                                样本数：<b>${stat.count}</b><br/>
+                                最小值：<b>${stat.min}万元</b><br/>
+                                下四分位数(Q1)：<b>${stat.q1}万元</b><br/>
+                                中位数：<b>${stat.median}万元</b><br/>
+                                上四分位数(Q3)：<b>${stat.q3}万元</b><br/>
+                                最大值：<b>${stat.max}万元</b><br/>
+                                平均值：<b>${stat.mean}万元</b>
+                                </div>`;
+                    }
+                } else if (params.seriesType === 'scatter') {
+                    var energyType = categories[params.value[0]] || '';
+                    return `<div style="line-height:1.6;">
+                            <b style="color:var(--biz-normal);">${params.name}</b><br/>
+                            能源类型：<b>${energyType}</b><br/>
+                            价格：<b style="color:#e74c3c;">${params.value[1]}万元</b>
+                            </div>`;
+                }
+                return '';
+            }
+        },
+        legend: {
+            data: ['价格分布', '正常值散点', '异常值'],
+            top: 10,
+            left: 'center',
+            textStyle: { fontSize: 13, color: theme.textColor }
+        },
+        grid: {
+            left: '3%',
+            right: '8%',
+            bottom: '10%',
+            top: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: categories,
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: {
+                fontSize: 12,
+                color: theme.textColor,
+                rotate: categories.length > 6 ? 30 : 0,
+                interval: 0
+            },
+            name: '能源类型',
+            nameTextStyle: { color: theme.textColor, fontSize: 13 }
+        },
+        yAxis: {
+            type: 'value',
+            name: '价格（万元）',
+            nameTextStyle: { color: theme.textColor, fontSize: 13 },
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: { fontSize: 12, color: theme.textColor },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        series: [
+            {
+                name: '价格分布',
+                type: 'boxplot',
+                data: boxplotSeries,
+                itemStyle: {
+                    color: isDark ? '#60a5fa' : '#3b82f6',
+                    borderColor: isDark ? '#93c5fd' : '#1d4ed8',
+                    borderWidth: 2
+                },
+                boxWidth: [20, 40],
+                emphasis: {
+                    itemStyle: {
+                        borderWidth: 3,
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(59,130,246,0.3)'
+                    }
+                }
+            },
+            {
+                name: '正常值散点',
+                type: 'scatter',
+                data: scatterData,
+                symbolSize: function(data) {
+                    return data.symbolSize || 6;
+                },
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0,0,0,0.3)'
+                    }
+                }
+            }
+        ]
+    };
+
+    priceBoxplotChart.setOption(option);
+}
+
+window.addEventListener('resize', function() {
+    if(marketShareChart) marketShareChart.resize();
+    if(priceDistributionChart) priceDistributionChart.resize();
+    if(modelDistributionChart) modelDistributionChart.resize();
+    if(priceBoxplotChart) priceBoxplotChart.resize(); 
+    {% if show_map_and_trend %}
+    if(citySalesMapChart) citySalesMapChart.resize();
+    if(monthlyNewCarChart) monthlyNewCarChart.resize();
+    {% endif %}
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const allowHelp = "{{ selected_city }}" === "all" && "{{ selected_month }}" === "0";
+    const helpBtn = document.querySelector('#showHelpBtn');
+
+    if (helpBtn) {
+        if (!allowHelp) {
+            helpBtn.disabled = true;
+            helpBtn.style.pointerEvents = 'none';
+            helpBtn.style.opacity = '0.5';
+            helpBtn.title = "⚠️ 帮助功能仅在【全国 + 最新月份】下可用";
+            helpSteps = [];
+        } else {
+            helpBtn.disabled = false;
+            helpBtn.style.pointerEvents = 'auto';
+            helpBtn.style.opacity = '1';
+            helpBtn.removeAttribute('disabled');
+            helpBtn.title = "查看页面帮助";
+
+            helpSteps = [
+                {
+                    selector: '.pagetitle h1',
+                    text: '这里是市场分析页面标题，展示当前城市与月份的数据范围。'
+                },
+                {
+                    selector: '#citySelect, #monthSelect',
+                    text: '你可以在这里切换城市与月份，筛选不同区域、不同时间的市场数据。'
+                },
+                {
+                    selector: '.card:has(#citySalesMapChart)',
+                    text: '全国城市销量地图：仅全国+最新月份可用，直观查看各城市热度。'
+                },
+                {
+                    selector: '.card:has(#marketShareChart)',
+                    text: '制造商市场份额：展示各大品牌销量占比，了解市场头部品牌。'
+                },
+                {
+                    selector: '.card:has(#modelDistributionChart)',
+                    text: '车型分布：统计轿车、SUV、MPV等车型占比，了解消费偏好。'
+                },
+                {
+                    selector: '.card:has(#priceDistributionChart)',
+                    text: '价格区间分布：查看各价位车型数量，了解市场价格结构。'
+                },
+                {
+                    selector: '.card:has(#monthlyNewCarChart)',
+                    text: '新车型上市趋势：统计近半年每月上市新车数量。'
+                },
+                {
+                    selector: '.card:has(#priceBoxplotChart) .card-title',
+                    text: '价格箱线图：按能源类型展示价格分布详情，可直观看到中位数、四分位数及异常值。'
+                },
+                {
+                    selector: '#exportMarketReportBtn',
+                    text: '导出报告：一键导出当前市场分析数据报告。'
+                },
+            ];
+        }
+    }
+});
+</script>
+{% endblock %}

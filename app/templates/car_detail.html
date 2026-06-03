@@ -1,0 +1,607 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}{{ car.brand }} {{ car.carname }} - 详情{% endblock %}
+
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">汽车详情</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" style="color: var(--biz-normal) !important;">首页</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'car_list' %}" style="color: var(--biz-normal) !important;">汽车列表</a></li>
+                <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">{{ car.brand }} {{ car.carname }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div>
+        <a href="javascript:history.back()" class="btn btn-secondary" style="background-color:#6c757d; border-color:#6c757d; color:white;">
+            <i class="bi bi-arrow-left"></i> 返回上一页
+        </a>
+    </div>
+</div>
+
+<style>
+:root {
+    --biz-card-bg: #ffffff;
+    --biz-card-text: #1e293b;
+    --biz-border: #e2e8f0;
+    --biz-gradient: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+    --card-hover-shadow: 0 12px 40px rgba(59, 130, 246, 0.15);
+    --title-color-light: #1e293b;
+    --title-color-dark: #f1f5f9;
+}
+
+[data-theme="dark"] {
+    --biz-card-bg: #0f172a;
+    --biz-card-text: #f1f5f9;
+    --biz-border: #1e293b;
+    --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    --card-hover-shadow: 0 12px 40px rgba(59, 130, 246, 0.1);
+}
+
+.card {
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background: var(--biz-card-bg);
+    color: var(--biz-card-text);
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--card-hover-shadow) !important;
+}
+
+.card-title {
+    color: var(--biz-dark) !important;
+    font-weight: 700;
+    font-size: 1.1rem;
+    position: relative;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.card-title::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 40px;
+    height: 3px;
+    background: var(--biz-gradient);
+    border-radius: 3px;
+}
+
+.badge.bg-primary {
+    background: var(--biz-gradient) !important;
+    border-radius: 8px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: none;
+}
+
+.badge.bg-secondary {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    color: var(--biz-normal) !important;
+    border-radius: 8px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: none;
+}
+
+.text-danger {
+    color: #ef4444 !important;
+    font-weight: 600;
+}
+
+.text-primary {
+    color: var(--biz-normal) !important;
+}
+
+.car-cname {
+    color: #1e293b !important;
+}
+[data-theme="dark"] .car-cname {
+    color: var(--biz-normal) !important;
+}
+
+.btn-primary {
+    background: var(--biz-gradient) !important;
+    border: none !important;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.row .label {
+    font-weight: 700;
+    color: var(--biz-dark) !important;
+    font-size: 0.9rem;
+}
+
+.row .col-lg-9 {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+hr {
+    border-top: 1px solid var(--biz-border);
+    opacity: 0.6;
+    margin: 0.5rem 0;
+}
+
+.comment-item {
+    padding: 12px;
+    border-radius: 12px;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.comment-item:hover {
+    background: rgba(59, 130, 246, 0.05);
+    transform: translateX(4px);
+}
+
+.bi-star-fill, .bi-star {
+    color: #f59e0b !important;
+    font-size: 14px;
+}
+
+.breadcrumb-item a {
+    color: var(--biz-normal) !important;
+    transition: color 0.3s ease;
+    font-weight: 500;
+}
+
+.breadcrumb-item a:hover {
+    color: var(--biz-dark) !important;
+}
+
+.breadcrumb-item.active {
+    color: var(--biz-dark) !important;
+    font-weight: 600;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--biz-normal) !important;
+}
+
+#priceChart, #radarChart {
+    width: 100%;
+    height: 280px;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+    border-radius: 8px;
+}
+
+[data-theme="dark"] .form-control::placeholder {
+    color: #64748b;
+}
+
+[data-theme="dark"] .comment-item {
+    color: var(--biz-card-text);
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--biz-border);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--biz-normal);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.row-eq-height {
+    display: flex;
+    flex-wrap: wrap;
+}
+.row-eq-height > [class*='col-'] {
+    display: flex;
+    flex-direction: column;
+}
+.row-eq-height .card {
+    flex: 1;
+}
+</style>
+
+<section class="section profile">
+    <div class="row row-eq-height">
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-body profile-card pt-4 d-flex flex-column align-items-center" style="justify-content: center; min-height: 500px;">
+                    <img src="{{ car.carimg }}" alt="{{ car.carname }}" class="img-fluid rounded"
+                         style="max-width: 280px; max-height: 200px; object-fit: cover; border-radius: 12px;
+                                box-shadow: 0 8px 24px rgba(0,0,0,0.1); transition: transform 0.3s ease;">
+
+                    <h2 class="mt-4 text-center car-cname" style="font-weight:700; font-size:1.3rem;display: flex;align-items:center;justify-content:center;gap:8px;">
+                        {% if brand_icon %}
+                        <img src="{{ brand_icon }}" alt="{{ car.brand }}" style="width:28px;height:28px;object-fit:contain;vertical-align:middle;">
+                        {% endif %}
+                        {{ car.brand }} {{ car.carname }}
+                    </h2>
+
+                    <div class="social-links mt-3">
+                        <span class="badge bg-primary me-2">{{ car.energytype }}</span>
+                        <span class="badge bg-secondary">{{ car.carmodel }}</span>
+                    </div>
+
+                    <div class="mt-4 text-center w-100">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <h6 class="text-muted mb-1" style="font-size:0.85rem;">销量</h6>
+                                <h4 class="text-primary fw-bold" style="font-size:1.2rem;">{{ car.salevolume }}</h4>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="text-muted mb-1" style="font-size:0.85rem;">综合评分</h6>
+                                <h4 class="fw-bold" style="color:#f59e0b; font-size:1.2rem;">{{ radar_scores.total_score }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 text-center">
+                        <h5 class="text-muted mb-1" style="font-size:0.85rem;">厂商指导价</h5>
+                        <h3 class="text-danger fw-bold" style="font-size:1.2rem;">
+                            {% with price_str=car.price|stringformat:"s" %}
+                                {% if "[" in price_str and "]" in price_str %}
+                                    {% with price_clean=price_str|slice:"1:-1"|split:"," %}
+                                        {% if price_clean|length > 1 %}
+                                            ￥{{ price_clean.1|floatformat:2 }}-{{ price_clean.0|floatformat:2 }}万
+                                        {% else %}
+                                            ￥{{ price_clean.0|floatformat:2 }}万
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    {{ car.price }}
+                                {% endif %}
+                            {% endwith %}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-body pt-3" style="height: 100%;">
+                    <h5 class="card-title">车辆信息</h5>
+
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">品牌</div>
+                        <div class="col-lg-8 col-md-8 d-flex align-items-center gap-8">
+                            {% if brand_icon %}
+                            <img src="{{ brand_icon }}" alt="{{ car.brand }}" style="width:20px;height:20px;object-fit:contain;">
+                            {% endif %}
+                            {{ car.brand }}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">车型名称</div>
+                        <div class="col-lg-8 col-md-8">{{ car.carname }}</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">制造商</div>
+                        <div class="col-lg-8 col-md-8">{{ car.manufacturer }}</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">销量</div>
+                        <div class="col-lg-8 col-md-8">{{ car.salevolume }} 辆</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">价格区间</div>
+                        <div class="col-lg-8 col-md-8">
+                            <span class="fw-bold text-danger">
+                                {% with price_str=car.price|stringformat:"s" %}
+                                    {% if "[" in price_str and "]" in price_str %}
+                                        {% with price_clean=price_str|slice:"1:-1"|split:"," %}
+                                            {% if price_clean|length > 1 %}
+                                                ¥{{ price_clean.1|floatformat:2 }}-{{ price_clean.0|floatformat:2 }}万
+                                            {% else %}
+                                                ¥{{ price_clean.0|floatformat:2 }}万
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        {{ car.price }}
+                                    {% endif %}
+                                {% endwith %}
+                            </span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">车型</div>
+                        <div class="col-lg-8 col-md-8">{{ car.carmodel }}</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">能源类型</div>
+                        <div class="col-lg-8 col-md-8">{{ car.energytype }}</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">上市时间</div>
+                        <div class="col-lg-8 col-md-8">{{ car.marketime }}</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 label">保修信息</div>
+                        <div class="col-lg-8 col-md-8">{{ car.insure }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="d-flex flex-column gap-3" style="height: 100%;">
+                <div class="card flex-grow-1">
+                    <div class="card-body pt-3">
+                        <h5 class="card-title">四维能力评分</h5>
+                        <div id="radarChart"></div>
+                    </div>
+                </div>
+
+                {% if request.GET.city == 'all' and request.GET.month == '0' %}
+                <div class="card flex-grow-1">
+                    <div class="card-body pt-3">
+                        <h5 class="card-title">近半年价格走势</h5>
+                        <div id="priceChart"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if request.GET.city == 'all' and request.GET.month == '0' %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">用户评价</h5>
+
+                    <div class="mb-5">
+                        <form id="commentForm" method="post" action="{% url 'car_detail' car.id %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="score" class="form-label">评分</label>
+                                <select class="form-select" id="score" name="score" required>
+                                    <option value="" {% if not user_comment %}selected{% endif %}>请选择评分</option>
+                                    <option value="5" {% if user_comment and user_comment.score == 5 %}selected{% endif %}>5星 - 非常好</option>
+                                    <option value="4" {% if user_comment and user_comment.score == 4 %}selected{% endif %}>4星 - 很好</option>
+                                    <option value="3" {% if user_comment and user_comment.score == 3 %}selected{% endif %}>3星 - 一般</option>
+                                    <option value="2" {% if user_comment and user_comment.score == 2 %}selected{% endif %}>2星 - 较差</option>
+                                    <option value="1" {% if user_comment and user_comment.score == 1 %}selected{% endif %}>1星 - 很差</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="content" class="form-label">评论内容</label>
+                                <textarea class="form-control" id="content" name="content" rows="3" required
+                                          placeholder="分享你的真实体验...">{% if user_comment %}{{ user_comment.content }}{% endif %}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                {% if user_comment %}更新评论{% else %}提交评论{% endif %}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="comment-list">
+                        <h6>全部评论 ({{ comments|length }})</h6>
+                        <hr>
+                        {% if comments %}
+                            {% for comment in comments %}
+                            <div class="comment-item d-flex mb-3">
+                                <div class="flex-shrink-0">
+                                    <img src="/media/{{ comment.user.avatar }}" alt="{{ comment.user.username }}"
+                                         class="rounded-circle" width="50" height="50" style="object-fit:cover;">
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0 fw-bold">{{ comment.user.username }}</h6>
+                                        <small class="text-muted">{{ comment.create_time|date:"Y-m-d H:i" }}</small>
+                                    </div>
+                                    <div class="rating mb-2">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= comment.score %}
+                                                <i class="bi bi-star-fill text-warning"></i>
+                                            {% else %}
+                                                <i class="bi bi-star text-warning"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <p class="mb-0" style="line-height:1.6;">{{ comment.content }}</p>
+                                </div>
+                            </div>
+                            {% if not forloop.last %}<hr style="margin:1rem 0;">{% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center py-4">暂无评论，快来分享你的看法吧！</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block active_menu %}car_list{% endblock %}
+
+{% block echarts %}
+<script src="/static/js/comment.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const radarDom = document.getElementById('radarChart');
+    if (radarDom) {
+        const radarChart = echarts.init(radarDom);
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+        const radarOption = {
+            tooltip: { trigger: 'item' },
+            radar: {
+                radius: '70%',
+                name: {
+                    textStyle: {
+                        color: isDark ? '#f1f5f9' : '#1e293b',
+                        fontSize: 12,
+                        fontWeight: 600
+                    }
+                },
+                indicator: [
+                    { name: '品牌实力', max: 100 },
+                    { name: '车型销量', max: 100 },
+                    { name: '保修保障', max: 100 },
+                    { name: '价格性价比', max: 100 }
+                ],
+                splitLine: {
+                    lineStyle: { color: isDark ? '#334155' : '#e2e8f0' }
+                },
+                axisLine: {
+                    lineStyle: { color: isDark ? '#475569' : '#cbd5e1' }
+                },
+                splitArea: {
+                    areaStyle: {
+                        color: isDark ? ['rgba(59,130,246,0.05)','rgba(59,130,246,0.1)']
+                                     : ['rgba(59,130,246,0.03)','rgba(59,130,246,0.08)']
+                    }
+                }
+            },
+            series: [{
+                name: '汽车评分',
+                type: 'radar',
+                data: [{
+                    value: [
+                        {{ radar_scores.brand_score }},
+                        {{ radar_scores.sale_score }},
+                        {{ radar_scores.warranty_score }},
+                        {{ radar_scores.price_score }}
+                    ],
+                    name: '综合能力',
+                    itemStyle: { color: '#3b82f6' },
+                    areaStyle: {
+                        color: '#3b82f6',
+                        opacity: 0.25
+                    },
+                    lineStyle: { width: 3 },
+                    symbol: 'circle',
+                    symbolSize: 8
+                }]
+            }]
+        };
+
+        radarChart.setOption(radarOption);
+        window.addEventListener('resize', () => radarChart.resize());
+
+        const radarObserver = new MutationObserver(() => {
+            const newDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            radarOption.radar.name.textStyle.color = newDark ? '#f1f5f9' : '#1e293b';
+            radarOption.radar.splitLine.lineStyle.color = newDark ? '#334155' : '#e2e8f0';
+            radarOption.radar.axisLine.lineStyle.color = newDark ? '#475569' : '#cbd5e1';
+            radarOption.radar.splitArea.areaStyle.color = newDark
+                ? ['rgba(59,130,246,0.05)','rgba(59,130,246,0.1)']
+                : ['rgba(59,130,246,0.03)','rgba(59,130,246,0.08)'];
+            radarChart.setOption(radarOption);
+        });
+        radarObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+
+    {% if request.GET.city == 'all' and request.GET.month == '0' %}
+    const chartDom = document.getElementById('priceChart');
+    const myChart = echarts.init(chartDom);
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    const labels = [];
+    const prices = [];
+    {% for item in price_trend %}
+        labels.push("{{ item.label }}");
+        prices.push({{ item.price|default:"null" }});
+    {% endfor %}
+
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            formatter: '{b}<br/>价格：{c} 万',
+            textStyle: { color: isDark ? '#fff' : '#333' },
+            backgroundColor: isDark ? '#1e293b' : '#fff',
+            borderColor: isDark ? '#475569' : '#ccc'
+        },
+        grid: { left: '10%', right: '5%', bottom: '15%', top: '10%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: labels,
+            axisLine: { lineStyle: { color: isDark ? '#475569' : '#ccc' } },
+            axisLabel: { color: isDark ? '#f1f5f9' : '#333' }
+        },
+        yAxis: {
+            type: 'value',
+            name: '万元',
+            axisLine: { lineStyle: { color: isDark ? '#475569' : '#ccc' } },
+            axisLabel: { color: isDark ? '#f1f5f9' : '#333' },
+            splitLine: { lineStyle: { color: isDark ? '#334155' : '#e5e7eb' } }
+        },
+        series: [{
+            name: '月价格',
+            type: 'line',
+            data: prices,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 7,
+            lineStyle: { color: '#3b82f6', width: 3 },
+            itemStyle: { color: '#3b82f6' },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(59,130,246,0.25)' },
+                    { offset: 1, color: 'rgba(59,130,246,0)' }
+                ])
+            }
+        }]
+    };
+
+    myChart.setOption(option);
+    window.addEventListener('resize', () => myChart.resize());
+
+    const observer = new MutationObserver(() => {
+        const newDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        option.tooltip.textStyle.color = newDark ? '#fff' : '#333';
+        option.tooltip.backgroundColor = newDark ? '#1e293b' : '#fff';
+        option.tooltip.borderColor = newDark ? '#475569' : '#ccc';
+        option.xAxis.axisLine.lineStyle.color = newDark ? '#475569' : '#ccc';
+        option.xAxis.axisLabel.color = newDark ? '#f1f5f9' : '#333';
+        option.yAxis.axisLine.lineStyle.color = newDark ? '#475569' : '#ccc';
+        option.yAxis.axisLabel.color = newDark ? '#f1f5f9' : '#333';
+        option.yAxis.splitLine.lineStyle.color = newDark ? '#334155' : '#e5e7eb';
+        myChart.setOption(option);
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    {% endif %}
+});
+</script>
+{% endblock %}

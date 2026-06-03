@@ -1,0 +1,610 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}爬虫管理{% endblock %}
+
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">爬虫管理</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
+                <li class="breadcrumb-item active">爬虫管理</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12) !important;
+}
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 4px 16px rgba(96, 165, 250, 0.15) !important;
+}
+
+.card-title {
+    color: var(--biz-dark) !important;
+    font-weight: 600;
+}
+
+.form-label {
+    color: var(--biz-dark) !important;
+    font-weight: 500;
+}
+
+.btn-success {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+}
+.btn-success:hover {
+    background-color: var(--biz-dark) !important;
+    border-color: var(--biz-dark) !important;
+}
+
+.btn-primary {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+}
+.btn-primary:hover {
+    background-color: var(--biz-dark) !important;
+    border-color: var(--biz-dark) !important;
+}
+
+.form-select,
+.form-control {
+    background-color: #fff !important;
+    color: var(--biz-text) !important;
+    border: 1px solid var(--biz-border) !important;
+}
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-control {
+    background-color: #334155 !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+}
+
+.form-select:focus,
+.form-control:focus {
+    border-color: var(--biz-normal) !important;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.2) !important;
+}
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+}
+
+.alert-info {
+    background-color: var(--biz-light) !important;
+    border-color: var(--biz-normal) !important;
+    color: var(--biz-dark) !important;
+}
+
+.func-btn {
+    transition: all 0.3s ease !important;
+}
+.func-btn:hover {
+    background-color: var(--biz-light) !important;
+    color: var(--biz-normal) !important;
+    border-color: transparent !important;
+}
+
+#operationLog {
+    transition: all 0.4s ease !important;
+}
+[data-theme="dark"] #operationLog {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    border: 1px solid #334155 !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #cbd5e1 !important;
+}
+
+.breadcrumb-item a {
+    color: var(--biz-normal) !important;
+    transition: color 0.3s ease;
+}
+.breadcrumb-item a:hover {
+    color: var(--biz-dark) !important;
+}
+.breadcrumb-item.active {
+    color: var(--biz-dark) !important;
+    font-weight: 500;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--biz-normal) !important;
+}
+</style>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">爬虫状态控制</h5>
+
+                    <div class="alert alert-info" role="alert">
+                        <h4 class="alert-heading"><i class="bi bi-info-circle me-2"></i>数据采集服务说明</h4>
+                        <p>本系统通过智能采集技术自动获取新能源汽车全维度信息，涵盖品牌、车型、销量、指导价、上市信息等核心数据，为系统提供实时数据支撑。</p>
+                        <ul>
+                            <li><strong>采集范围</strong>：国内平台的汽车数据，包含基础信息与销量统计</li>
+                            <li><strong>执行方式</strong>：支持手动触发采集更新</li>
+                            <li><strong>数据流程</strong>：原始数据统一归档存储，经校验后同步至业务数据库</li>
+                            <li><strong>智能更新</strong>：采用唯一标识匹配机制，重复数据自动覆盖，新数据自动新增</li>
+                        </ul>
+                        <p class="mb-0 mt-2" style="color: #856404; background-color: #fff3cd; padding: 8px 12px; border-radius: 6px;">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>温馨提示：</strong>本爬虫管理仅供学习交流使用，仅爬取全国上个月的最新销量及车型数据，并非全量历史数据爬取管理。
+                        </p>
+                        <hr>
+                        <p class="mb-0">合理使用数据采集功能，保持合规采集频率；系统内置智能去重策略，确保数据高效且准确更新。</p>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="crawlCount" class="form-label">爬取数量（排行榜名次）</label>
+                            <select id="crawlCount" class="form-select" onchange="toggleCustomInput()">
+                                <option value="5">前5名</option>
+                                <option value="10" selected>前10名</option>
+                                <option value="20">前20名</option>
+                                <option value="50">前50名</option>
+                                <option value="custom">自定义数量</option>
+                            </select>
+
+                            <div id="customInputDiv" class="mt-2" style="display: none;">
+                                <label for="customCount" class="form-label">请输入爬取数量</label>
+                                <input type="number" id="customCount" class="form-control" min="1" placeholder="请输入爬取数量" value="10">
+                                <small class="form-text text-muted">请输入大于0的数字</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">数据源</label>
+                            <p class="form-control-plaintext text-muted">汽车排行榜</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <button id="startSpiderBtn" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-play-circle me-2"></i>启动爬虫
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="importDataBtn" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-arrow-clockwise me-2"></i>更新数据
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="bi bi-terminal me-2"></i>操作日志
+                                        <button id="clearLogBtn" class="btn btn-sm btn-outline-secondary float-end" onclick="clearLogs()">
+                                            <i class="bi bi-trash me-1"></i>清空
+                                        </button>
+                                    </h5>
+                                    <div id="operationLog" class="bg-dark text-light p-3" style="height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px;">
+                                        <div class="text-muted">等待操作...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block echarts %}
+<script>
+    let lastLogIndex = 0;
+    window.stopPolling = false;
+
+    function addLog(message, type) {
+        const logDiv = document.getElementById('operationLog');
+        if (!logDiv) {
+            return;
+        }
+
+        const time = new Date().toLocaleString();
+
+        let logStyle = '';
+        switch(type) {
+            case 'error':
+                logStyle = 'color: #ff6b6b;';
+                break;
+            case 'success':
+                logStyle = 'color: #51cf66;';
+                break;
+            case 'warning':
+                logStyle = 'color: #ffd43b;';
+                break;
+            case 'info':
+            default:
+                logStyle = 'color: #339af0;';
+        }
+
+        let formattedMessage = message;
+        if (message.includes('完整数据: [')) {
+            const dataMatch = message.match(/完整数据: (\[.*\])/);
+            if (dataMatch && dataMatch[1]) {
+                try {
+                    const dataArray = JSON.parse(dataMatch[1].replace(/'/g, '"'));
+                    formattedMessage = '完整数据: ' + formatCarData(dataArray);
+                    logStyle = 'color: #20c997;';
+                } catch (e) {
+                }
+            }
+        }
+
+        const logEntry = `<div style="${logStyle} margin: 2px 0; font-family: 'Courier New', monospace; font-size: 12px;">[${time}] ${formattedMessage}</div>`;
+
+        if (logDiv.innerHTML.includes('等待操作...') || logDiv.innerHTML.includes('日志已清空，等待新操作...')) {
+            logDiv.innerHTML = '';
+        }
+
+        logDiv.innerHTML += logEntry;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function formatCarData(dataArray) {
+        if (!Array.isArray(dataArray) || dataArray.length < 9) {
+            return JSON.stringify(dataArray);
+        }
+
+        const [
+            brand,
+            model,
+            imageUrl,
+            salesVolume,
+            priceRange,
+            manufacturer,
+            carModel,
+            energyType,
+            marketTime,
+            warranty
+        ] = dataArray;
+
+        return `品牌: ${brand}, 车型: ${model}, 销量: ${salesVolume.toLocaleString()}辆, ` +
+               `价格: ${priceRange[0]}-${priceRange[1]}万元, 厂商: ${manufacturer}, ` +
+               `车型: ${carModel}, 能源: ${energyType}, 上市: ${marketTime}, 保修: ${warranty}`;
+    }
+
+    const displayedLogMessages = new Set();
+
+    function fetchSpiderLogs() {
+        if (window.stopPolling) {
+            return;
+        }
+
+        fetch(`{% url "get_spider_logs" %}?last_index=${lastLogIndex}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.logs.length > 0) {
+                    const newLogs = data.logs.filter(log => {
+                        const logId = `${log.timestamp}-${log.message}`;
+                        if (displayedLogMessages.has(logId)) {
+                            return false;
+                        }
+                        displayedLogMessages.add(logId);
+                        return true;
+                    });
+
+                    if (newLogs.length === 0) {
+                        lastLogIndex = data.total_count;
+                        setTimeout(fetchSpiderLogs, 500);
+                        return;
+                    }
+
+                    let i = 0;
+                    function addNextLog() {
+                        if (window.stopPolling) {
+                            return;
+                        }
+
+                        if (i < newLogs.length) {
+                            const log = newLogs[i];
+                            addLog(log.message, log.type);
+
+                            if (log.message.includes('爬虫执行成功') ||
+                                log.message.includes('本次爬取完成') ||
+                                log.message.includes('已达到目标爬取数量') ||
+                                log.message.includes('爬虫运行完成')) {
+                                setTimeout(() => {
+                                    stopLogPolling();
+                                    resetSpiderButton();
+                                    addLog('爬虫任务已完成，系统就绪', 'success');
+                                }, 1000);
+                            }
+
+                            i++;
+                            setTimeout(addNextLog, Math.max(50, 200 - i * 10));
+                        } else {
+                            lastLogIndex = data.total_count;
+                            setTimeout(fetchSpiderLogs, 500);
+                        }
+                    }
+
+                    addNextLog();
+                } else {
+                    setTimeout(fetchSpiderLogs, 500);
+                }
+            })
+            .catch(error => {
+                setTimeout(fetchSpiderLogs, 1000);
+            });
+    }
+
+    function startLogPolling() {
+        window.stopPolling = false;
+        fetchSpiderLogs();
+    }
+
+    function stopLogPolling() {
+        window.stopPolling = true;
+    }
+
+    function clearLogs() {
+        const logDiv = document.getElementById('operationLog');
+        if (logDiv) {
+            logDiv.innerHTML = '<div class="text-muted">日志已清空，等待新操作...</div>';
+        }
+        lastLogIndex = 0;
+        displayedLogMessages.clear();
+        return fetch('{% url "clear_spider_logs" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    function toggleCustomInput() {
+        const crawlCountSelect = document.getElementById('crawlCount');
+        const customInputDiv = document.getElementById('customInputDiv');
+
+        if (crawlCountSelect && customInputDiv) {
+            if (crawlCountSelect.value === 'custom') {
+                customInputDiv.style.display = 'block';
+            } else {
+                customInputDiv.style.display = 'none';
+            }
+        }
+    }
+
+    function getCrawlCount() {
+        const crawlCountSelect = document.getElementById('crawlCount');
+
+        if (crawlCountSelect.value === 'custom') {
+            const customCount = document.getElementById('customCount').value;
+            const count = parseInt(customCount);
+
+            if (isNaN(count) || count < 1) {
+                addLog('请输入大于0的数字', 'error');
+                return null;
+            }
+
+            return count;
+        } else {
+            return parseInt(crawlCountSelect.value);
+        }
+    }
+
+    let isSubmitting = false;
+
+    async function startSpider() {
+        if (isSubmitting) {
+            addLog('爬虫正在运行中，请等待完成后再试', 'warning');
+            return;
+        }
+
+        const startBtn = document.getElementById('startSpiderBtn');
+        const crawlCount = getCrawlCount();
+
+        if (crawlCount === null) {
+            return;
+        }
+
+        if (!startBtn) {
+            addLog('启动按钮元素未找到', 'error');
+            return;
+        }
+
+        isSubmitting = true;
+
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>爬虫运行中...';
+
+        await clearLogs();
+
+        addLog(`正在启动爬虫...（爬取前${crawlCount}名）`, 'info');
+
+        startLogPolling();
+
+        fetch('{% url "start_spider" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'crawl_count': parseInt(crawlCount)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addLog(data.message, 'success');
+            } else {
+                addLog(data.message, 'error');
+                resetSpiderButton();
+                stopLogPolling();
+            }
+        })
+        .catch(error => {
+            addLog(`启动爬虫错误: ${error}`, 'error');
+            resetSpiderButton();
+            stopLogPolling();
+        });
+    }
+
+    function resetSpiderButton() {
+        const startBtn = document.getElementById('startSpiderBtn');
+        if (startBtn) {
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="bi bi-play-circle me-2"></i>启动爬虫';
+        }
+        isSubmitting = false;
+    }
+
+    async function importData() {
+        if (isSubmitting) {
+            addLog('数据更新正在运行中，请等待完成后再试', 'warning');
+            return;
+        }
+
+        const importBtn = document.getElementById('importDataBtn');
+
+        if (!importBtn) {
+            addLog('更新按钮元素未找到', 'error');
+            return;
+        }
+
+        isSubmitting = true;
+
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>更新中...';
+
+        await clearLogs();
+
+        addLog('正在更新数据到数据库...', 'info');
+
+        startLogPolling();
+
+        fetch('{% url "import_spider_data" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addLog(data.message, 'success');
+                setTimeout(() => {
+                    addLog('数据更新完成', 'info');
+                    isSubmitting = false;
+                    location.reload();
+                }, 10000);
+            } else {
+                addLog(data.message, 'error');
+                resetImportButton();
+                stopLogPolling();
+            }
+        })
+        .catch(error => {
+            addLog(`更新数据错误: ${error}`, 'error');
+            resetImportButton();
+            stopLogPolling();
+        });
+    }
+
+    function resetImportButton() {
+        const importBtn = document.getElementById('importDataBtn');
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>更新数据';
+        }
+        isSubmitting = false;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const startBtn = document.getElementById('startSpiderBtn');
+            const importBtn = document.getElementById('importDataBtn');
+            const clearLogBtn = document.getElementById('clearLogBtn');
+            const crawlCountSelect = document.getElementById('crawlCount');
+
+            if (startBtn) {
+                startBtn.addEventListener('click', startSpider);
+            }
+
+            if (importBtn) {
+                importBtn.addEventListener('click', importData);
+            }
+
+            if (clearLogBtn) {
+                clearLogBtn.addEventListener('click', clearLogs);
+            }
+
+            if (crawlCountSelect) {
+                toggleCustomInput();
+            }
+
+            const logDiv = document.getElementById('operationLog');
+            if (logDiv) {
+                addLog('爬虫管理系统已准备就绪', 'info');
+            }
+
+            resetSpiderButton();
+            resetImportButton();
+
+        } catch (error) {
+        }
+    });
+
+    window.addEventListener('beforeunload', function() {
+        stopLogPolling();
+    });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const helpBtn = document.querySelector('#showHelpBtn');
+    if (!helpBtn) return;
+
+    helpBtn.disabled = false;
+    helpBtn.style.pointerEvents = 'auto';
+    helpBtn.style.opacity = '1';
+    helpBtn.title = "查看页面帮助";
+
+    helpSteps = [
+        {
+            selector: ".pagetitle h1",
+            text: "这里是爬虫管理页面，用于控制汽车数据的采集与更新。"
+        },
+        {
+            selector: ".alert-info",
+            text: "查看数据采集服务说明，了解爬取范围、执行方式与数据处理规则。"
+        },
+        {
+            selector: "#crawlCount",
+            text: "选择需要爬取的汽车数量，支持预设选项与自定义数量。"
+        },
+        {
+            selector: "#startSpiderBtn",
+            text: "点击启动爬虫，开始从数据源自动采集最新的汽车销量与车型数据。"
+        },
+        {
+            selector: "#importDataBtn",
+            text: "采集完成后，点击更新数据，将最新数据同步到系统数据库中。"
+        },
+        {
+            selector: "#operationLog",
+            text: "实时查看爬虫运行日志，了解执行状态、进度与结果信息。"
+        },
+        {
+            selector: "#clearLogBtn",
+            text: "一键清空日志内容，方便重新查看新的运行记录。"
+        }
+    ];
+});
+</script>
+{% endblock %}

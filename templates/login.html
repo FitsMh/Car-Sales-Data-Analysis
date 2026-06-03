@@ -1,0 +1,51 @@
+{% extends 'base_login.html' %}
+
+{% block title %}登录 - 汽车销售大数据分析系统{% endblock %}
+
+{% block form_title %}欢迎回来{% endblock %}
+{% block form_subtitle %}登录您的账号以继续访问{% endblock %}
+
+{% block content %}
+<form method="post" action="{% url 'login' %}" id="loginForm">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <div class="input-wrapper">
+            <i class="bi bi-person input-icon"></i>
+            <input type="text"
+                   name="username"
+                   id="username"
+                   placeholder=" "
+                   required
+                   autocomplete="username">
+            <label for="username">用户名</label>
+            <div class="input-highlight"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="input-wrapper">
+            <i class="bi bi-lock input-icon"></i>
+            <input type="password"
+                   name="password"
+                   id="password"
+                   placeholder=" "
+                   required
+                   autocomplete="current-password">
+            <label for="password">密码</label>
+            <div class="input-highlight"></div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-login" id="loginBtn">
+        <span class="btn-text">安全登录</span>
+        <span class="btn-loader" style="display: none;">
+            <i class="bi bi-arrow-repeat spin"></i> 登录中...
+        </span>
+    </button>
+</form>
+
+<div class="login-footer">
+    还没有账号？<a href="{% url 'register' %}">立即注册</a>
+</div>
+{% endblock %}

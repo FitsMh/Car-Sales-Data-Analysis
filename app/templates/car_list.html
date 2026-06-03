@@ -1,0 +1,861 @@
+﻿{% extends 'base.html' %}
+{% load custom_filters %}
+{% block title %}汽车列表{% endblock %}
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">
+            汽车列表·{{ city_name }}·{{ month_name }}
+            {% if brand_filter and brand_filter != '' %}·{{ brand_filter }}{% endif %}
+            {% if price_filter and price_filter != '' %}
+                ·{% if price_filter == '0-10' %}0-10万
+                {% elif price_filter == '10-15' %}10-15万
+                {% elif price_filter == '15-20' %}15-20万
+                {% elif price_filter == '20-25' %}20-25万
+                {% elif price_filter == '25-30' %}25-30万
+                {% elif price_filter == '30-40' %}30-40万
+                {% elif price_filter == '50万以上' %}50万以上
+                {% else %}{{ price_filter }}{% endif %}
+            {% endif %}
+            {% if model_filter and model_filter != '' %}·{{ model_filter }}{% endif %}
+            {% if energy_filter and energy_filter != '' %}·{{ energy_filter }}{% endif %}
+        </h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" style="color: var(--biz-normal) !important;">首页</a></li>
+                <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">汽车列表</li>
+            </ol>
+        </nav>
+    </div>
+<form method="get" action="{% url 'car_list' %}" class="d-flex gap-2 me-3">
+    <input type="hidden" name="brand" value="{{ brand_filter }}">
+    <input type="hidden" name="brand_initial" value="{{ brand_initial }}">
+    <input type="hidden" name="energy" value="{{ energy_filter }}">
+    <input type="hidden" name="model" value="{{ model_filter }}">
+    <input type="hidden" name="price" value="{{ price_filter }}">
+    <input type="hidden" name="keyword" value="{{ keyword_filter }}">
+    <input type="hidden" name="sort" value="{{ current_sort }}">
+
+    <select name="city" id="citySelect" class="form-select form-select-sm" style="width: 160px; background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border);" onchange="this.form.submit()">
+        {% for key, name in CAR_CITY_NAMES.items %}
+        <option value="{{ key }}" {% if city_filter == key %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="month" id="monthSelect" class="form-select form-select-sm" style="width: 160px; background: var(--biz-card-bg); color: var(--biz-text); border-color: var(--biz-border); transition: all 0.3s ease;" onchange="this.form.submit()" {% if city_filter != 'all' %}disabled{% endif %}>
+        {% for key, name in CAR_MONTH_NAMES.items %}
+        <option value="{{ key }}" {% if month_filter == key %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+    </select>
+</form>
+</div>
+
+<style>
+:root {
+    --transition-smooth: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-light: 0 2px 8px rgba(37, 99, 235, 0.06);
+    --shadow-medium: 0 4px 16px rgba(37, 99, 235, 0.12);
+    --shadow-heavy: 0 8px 24px rgba(37, 99, 235, 0.15);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+}
+
+body {
+    scroll-behavior: smooth;
+}
+
+.info-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.info-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15) !important;
+}
+.card-title {
+    color: var(--biz-dark) !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.car-item .card.h-100 {
+    transition: var(--transition-smooth);
+    border: 1px solid var(--biz-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--biz-card-bg);
+    height: 100% !important;
+}
+.car-item .card.h-100:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-heavy);
+    border-color: rgba(37, 99, 235, 0.2);
+}
+[data-theme="dark"] .car-item .card.h-100:hover {
+    box-shadow: 0 10px 25px rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.2);
+}
+
+.text-danger {
+    color: var(--biz-normal) !important;
+    font-size: 1.15rem;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    padding: 0.5rem 1.2rem;
+    transition: var(--transition-smooth);
+}
+.btn-primary:hover {
+    background-color: var(--biz-dark) !important;
+    border-color: var(--biz-dark) !important;
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-1px);
+}
+.btn-success {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    padding: 0.5rem 1.2rem;
+    transition: var(--transition-smooth);
+}
+.btn-success:hover {
+    background-color: #218838 !important;
+    border-color: #1e7e34 !important;
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-1px);
+}
+.btn-secondary {
+    background-color: var(--biz-light) !important;
+    border-color: var(--biz-light) !important;
+    color: var(--biz-normal) !important;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    transition: var(--transition-smooth);
+}
+.btn-secondary:hover {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+    color: #fff !important;
+}
+
+.bg-primary {
+    background-color: var(--biz-normal) !important;
+    border-radius: var(--radius-sm);
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.bg-secondary {
+    background-color: rgba(37, 99, 235, 0.12) !important;
+    color: var(--biz-normal) !important;
+    border-radius: var(--radius-sm);
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+[data-theme="dark"] .bg-secondary {
+    background-color: rgba(96, 165, 250, 0.15) !important;
+}
+
+.breadcrumb-item a {
+    color: var(--biz-normal) !important;
+    transition: color 0.3s ease;
+}
+.breadcrumb-item a:hover {
+    color: var(--biz-dark) !important;
+}
+.breadcrumb-item.active {
+    color: var(--biz-dark) !important;
+    font-weight: 500;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--biz-normal) !important;
+}
+
+.page-link {
+    color: var(--biz-normal) !important;
+    border-radius: var(--radius-sm);
+    margin: 0 2px;
+    background: var(--biz-card-bg);
+    border: 1px solid var(--biz-border);
+    transition: var(--transition-smooth);
+}
+.page-item.active .page-link {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+    color: #fff !important;
+}
+.page-link:hover {
+    color: var(--biz-dark) !important;
+    background-color: var(--biz-light);
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .page-link {
+    background-color: var(--biz-light) !important;
+    color: var(--biz-normal) !important;
+    border-color: var(--biz-border) !important;
+}
+[data-theme="dark"] .page-link:hover {
+    background-color: var(--biz-normal) !important;
+    color: #fff !important;
+}
+[data-theme="dark"] .page-item.active .page-link {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+    color: #fff !important;
+}
+[data-theme="dark"] .page-item.disabled .page-link {
+    background-color: var(--biz-light) !important;
+    color: #64748b !important;
+    border-color: var(--biz-border) !important;
+}
+
+.text-pink {
+    color: var(--biz-normal) !important;
+    font-weight: 600;
+}
+
+.select-scrollable::-webkit-scrollbar,
+.brand-horizontal-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.select-scrollable::-webkit-scrollbar-track,
+.brand-horizontal-scroll::-webkit-scrollbar-track {
+    background: var(--biz-light);
+    border-radius: 3px;
+}
+.select-scrollable::-webkit-scrollbar-thumb,
+.brand-horizontal-scroll::-webkit-scrollbar-thumb {
+    background: var(--biz-normal);
+    border-radius: 3px;
+}
+.select-scrollable::-webkit-scrollbar-thumb:hover,
+.brand-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--biz-dark);
+}
+
+.alert-warning-custom {
+    background-color: #fff3cd !important;
+    border-color: #ffeaa7 !important;
+    color: #856404 !important;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-md);
+    margin: 0;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+[data-theme="dark"] .alert-warning-custom {
+    background-color: #5a4a0f !important;
+    border-color: #856404 !important;
+    color: #ffeaa7 !important;
+}
+
+.card-img-top {
+    border-radius: 0 !important;
+    height: 180px;
+    object-fit: cover;
+}
+.card-body {
+    padding: 1.25rem;
+    color: var(--biz-card-text);
+    overflow: visible !important;
+}
+.card-text {
+    color: var(--biz-text) !important;
+    margin-bottom: 0.5rem;
+    font-size: 0.92rem;
+}
+
+.form-check-label {
+    font-size: 0.85rem;
+    color: var(--biz-text) !important;
+}
+.form-check-input {
+    border-color: var(--biz-normal);
+}
+.form-check-input:checked {
+    background-color: var(--biz-normal);
+    border-color: var(--biz-normal);
+}
+
+.form-select, .form-control {
+    background: var(--biz-card-bg) !important;
+    color: var(--biz-text) !important;
+    border: 1px solid rgba(37, 99, 235, 0.15) !important;
+    border-radius: var(--radius-md);
+    transition: var(--transition-smooth);
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+    box-shadow: var(--shadow-light);
+}
+.form-select:focus, .form-control:focus {
+    border-color: var(--biz-normal) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 4px 12px rgba(37, 99, 235, 0.12) !important;
+    transform: translateY(-1px);
+    outline: none;
+}
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-control {
+    border-color: rgba(96, 165, 250, 0.15) !important;
+    box-shadow: var(--shadow-light);
+}
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18), 0 4px 12px rgba(96, 165, 250, 0.12) !important;
+}
+
+.form-select:disabled,
+.form-select[disabled] {
+    background-color: #eff6ff !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+[data-theme="dark"] .form-select:disabled,
+[data-theme="dark"] .form-select[disabled] {
+    background-color: #343a40 !important;
+    color: #adb5bd !important;
+    border-color: #495057 !important;
+}
+
+.text-muted {
+    color: var(--biz-text) !important;
+    opacity: 0.8;
+}
+
+.tab-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+}
+.tab-filter-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--biz-dark);
+    margin-right: 16px;
+    white-space: nowrap;
+}
+.tab-filter-wrapper {
+    position: relative;
+    display: inline-block;
+}
+.tab-filter-item {
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    background: transparent !important;
+    color: var(--biz-text);
+    border: none !important;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: var(--transition-smooth);
+    display: block;
+    box-shadow: none !important;
+    white-space: nowrap;
+}
+.tab-filter-item:hover {
+    background: transparent !important;
+    color: var(--biz-normal);
+    transform: translateY(-1px);
+    box-shadow: none !important;
+}
+.tab-filter-item.active {
+    background-color: var(--biz-normal) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+.tab-filter-submenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+    background: var(--biz-card-bg);
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: var(--radius-md);
+    min-width: 180px;
+    z-index: 99999;
+    box-shadow: var(--shadow-heavy);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: var(--transition-smooth);
+}
+.tab-filter-wrapper:hover .tab-filter-submenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.tab-filter-submenu-item {
+    display: block;
+    padding: 10px 16px;
+    color: var(--biz-text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: var(--transition-smooth);
+}
+.tab-filter-submenu-item:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--biz-normal);
+}
+.tab-filter-submenu-item:first-child {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.tab-filter-submenu-item:last-child {
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.filter-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--biz-border);
+}
+.filter-row:last-child {
+    border-bottom: none;
+}
+
+.filter-card {
+    background: linear-gradient(145deg, var(--biz-card-bg), rgba(37, 99, 235, 0.02)) !important;
+    border-radius: var(--radius-lg) !important;
+    border: 1px solid rgba(37, 99, 235, 0.08) !important;
+    box-shadow: var(--shadow-light) !important;
+    transition: var(--transition-smooth);
+    overflow: visible !important;
+}
+.filter-card:hover {
+    box-shadow: var(--shadow-medium) !important;
+}
+
+.brand-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.brand-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--biz-dark);
+    margin-right: 16px;
+    white-space: nowrap;
+}
+.brand-initial-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    justify-content: space-between;
+}
+.initial-btn {
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: transparent !important;
+    color: var(--biz-text);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition-smooth);
+    font-size: 0.9rem;
+    text-align: center;
+    border: none !important;
+    box-shadow: none !important;
+    white-space: nowrap;
+    flex: 1;
+}
+.initial-btn:hover {
+    background: transparent !important;
+    color: var(--biz-normal);
+    transform: translateY(-1px);
+}
+.initial-btn.active {
+    background-color: var(--biz-normal) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+}
+
+.brand-horizontal-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    width: 100%;
+    margin-top: 8px;
+}
+.brand-item {
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    background: rgba(37, 99, 235, 0.05);
+    color: var(--biz-text);
+    font-size: 0.85rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: var(--transition-smooth);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.brand-item:hover {
+    background: var(--biz-normal);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-light);
+}
+.brand-item.active {
+    background: var(--biz-normal);
+    color: #fff;
+    box-shadow: var(--shadow-medium);
+}
+.brand-item img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.car-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.2rem;
+}
+
+.form-select:focus {
+    border-color: var(--biz-normal) !important;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.2) !important;
+}
+[data-theme="dark"] .form-select option {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+</style>
+
+<section class="section">
+    <div class="row">
+        <div class="col-12">
+            <div class="card" style="overflow: visible !important;">
+                <div class="card-body">
+                    <form method="get" action="{% url 'car_list' %}" id="filterForm">
+                        <div class="d-flex align-items-center mb-4 flex-wrap gap-3">
+                            <h5 class="card-title m-0 me-3">汽车数据列表</h5>
+                            {% if city_filter != 'all' %}
+                            <div class="alert-warning-custom">
+                                城市数据仅支持查看 <strong>上个月</strong>，历史月份数据和更多功能仅在【全国】模式下可用
+                            </div>
+                            {% endif %}
+                            {% if city_filter == 'all' and month_filter != '0' %}
+                            <div class="alert-warning-custom">
+                                评论功能和近半年价格走势仅对<strong>最新月份</strong>数据生效
+                            </div>
+                            {% endif %}
+                            <div style="margin-left: auto; display: flex; align-items: center; gap: 0.75rem;">
+                                <input type="text" name="keyword" class="form-control" placeholder="品牌/车型" value="{{ keyword_filter }}" style="width: 180px;">
+                                <button type="submit" class="btn btn-primary btn-sm">搜索</button>
+
+                                <a id="compareBtn" href="javascript:void(0)" class="btn btn-sm btn-success me-2" style="display: none;">
+                                    车型对比 <span id="compareCount" class="badge bg-light text-success">0</span>
+                                </a>
+
+                                <a href="?sort=sale&city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}" class="btn btn-sm btn-primary me-2">按销量从高到低</a>
+                                <a href="?sort=price&city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}" class="btn btn-sm btn-primary">按价格从低到高</a>
+                            </div>
+                        </div>
+
+                        <div class="card shadow-sm mb-4 border-0 filter-card">
+                            <div class="card-body filter-section">
+
+                                <div class="filter-row">
+                                    <div class="brand-container">
+                                        <span class="tab-filter-label">品牌</span>
+                                        <div class="brand-initial-bar">
+                                            <a href="?city={{ city_filter }}&month={{ month_filter }}&brand=&brand_initial=&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}"
+                                               class="tab-filter-item {% if brand_initial == '' %}active{% endif %}">不限</a>
+                                            {% for initial in brand_groups.keys %}
+                                            <a href="?city={{ city_filter }}&month={{ month_filter }}&brand=&brand_initial={{ initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}"
+                                               class="tab-filter-item {% if brand_initial == initial %}active{% endif %}">{{ initial }}</a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% if brand_initial and brand_initial in brand_groups %}
+                                <div class="brand-horizontal-scroll">
+                                    {% for b in brand_groups|get_item:brand_initial %}
+                                    <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ b.name }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}"
+                                       class="brand-item {% if brand_filter == b.name %}active{% endif %}">
+                                        {% if b.logo %}
+                                        <img src="{{ b.logo }}" alt="{{ b.name }}">
+                                        {% endif %}
+                                        {{ b.name }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                <div class="filter-row">
+                                    <div class="tab-filter-group">
+                                        <span class="tab-filter-label">价格</span>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '' %}active{% endif %}">不限</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=0-10&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '0-10' %}active{% endif %}">0-10万</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=10-15&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '10-15' %}active{% endif %}">10-15万</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=15-20&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '15-20' %}active{% endif %}">15-20万</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=20-25&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '20-25' %}active{% endif %}">20-25万</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=25-30&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '25-30' %}active{% endif %}">25-30万</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=30-40&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '30-40' %}active{% endif %}">30-40万</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price=50万以上&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if price_filter == '50万以上' %}active{% endif %}">50万以上</a>
+                                    </div>
+                                </div>
+
+                                <div class="filter-row">
+                                    <div class="tab-filter-group">
+                                        <span class="tab-filter-label">级别</span>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == '' %}active{% endif %}">不限</a>
+
+                                        <div class="tab-filter-wrapper">
+                                            <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=轿车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == '轿车' %}active{% endif %}">轿车 ▼</a>
+                                            <div class="tab-filter-submenu">
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=微型车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">微型车</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=小型车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">小型车</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=紧凑型车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">紧凑型车</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=中型车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">中型车</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=中大型车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">中大型车</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="tab-filter-wrapper">
+                                            <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=SUV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == 'SUV' %}active{% endif %}">SUV ▼</a>
+                                            <div class="tab-filter-submenu">
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=小型SUV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">小型SUV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=紧凑型SUV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">紧凑型SUV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=中型SUV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">中型SUV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=中大型SUV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">中大型SUV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=大型SUV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">大型SUV</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="tab-filter-wrapper">
+                                            <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=MPV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == 'MPV' %}active{% endif %}">MPV ▼</a>
+                                            <div class="tab-filter-submenu">
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=小型MPV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">小型MPV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=紧凑型MPV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">紧凑型MPV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=中型MPV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">中型MPV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=中大型MPV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">中大型MPV</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=大型MPV&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">大型MPV</a>
+                                            </div>
+                                        </div>
+
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=跑车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == '跑车' %}active{% endif %}">跑车</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=微面&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == '微面' %}active{% endif %}">微面</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=轻客&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == '轻客' %}active{% endif %}">轻客</a>
+
+                                        <div class="tab-filter-wrapper">
+                                            <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=卡车&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if model_filter == '卡车' %}active{% endif %}">卡车 ▼</a>
+                                            <div class="tab-filter-submenu">
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=轻卡&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">轻卡</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=皮卡&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">皮卡</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model=微卡&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">微卡</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="filter-row">
+                                    <div class="tab-filter-group">
+                                        <span class="tab-filter-label">能源</span>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '' %}active{% endif %}">不限</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=汽油&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '汽油' %}active{% endif %}">汽油</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=柴油&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '柴油' %}active{% endif %}">柴油</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=油电混合&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '油电混合' %}active{% endif %}">油电混合</a>
+
+                                        <div class="tab-filter-wrapper">
+                                            <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=新能源&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '新能源' or energy_filter == '纯电动' or energy_filter == '增程式' or energy_filter == '插电式混合动力' %}active{% endif %}">新能源 ▼</a>
+                                            <div class="tab-filter-submenu">
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=新能源&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">全部</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=纯电动&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">纯电动</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=增程式&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">增程式</a>
+                                                <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=插电式混合动力&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-submenu-item">插电式混合动力</a>
+                                            </div>
+                                        </div>
+
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=48V轻混系统&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '48V轻混系统' %}active{% endif %}">48V轻混</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=压缩天然气(CNG)&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '压缩天然气(CNG)' %}active{% endif %}">CNG</a>
+                                        <a href="?city={{ city_filter }}&month={{ month_filter }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy=未知能源&model={{ model_filter }}&price={{ price_filter }}&sort={{ current_sort }}&keyword={{ keyword_filter }}" class="tab-filter-item {% if energy_filter == '未知能源' %}active{% endif %}">未知能源</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="car-grid">
+                        {% for car in cars %}
+                        <div class="car-item" data-brand="{{ car.brand }}" data-energy="{{ car.energytype }}" data-model="{{ car.carmodel }}">
+                            <div class="card h-100">
+                                <div class="position-absolute top-0 end-0 p-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input compare-checkbox" type="checkbox" value="{{ car.id }}" id="compare{{ car.id }}">
+                                        <label class="form-check-label" for="compare{{ car.id }}">对比</label>
+                                    </div>
+                                </div>
+                                <img src="{{ car.carimg }}" class="card-img-top" alt="{{ car.carname }}">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2">{{ car.brand }} {{ car.carname }}</h5>
+                                    <p class="card-text mb-3">
+                                        <span class="badge bg-primary me-1">{{ car.energytype }}</span>
+                                        <span class="badge bg-secondary">{{ car.carmodel }}</span>
+                                    </p>
+                                    <p class="card-text mb-1">销量: {{ car.salevolume }}</p>
+                                    <p class="card-text mb-3">
+                                        <span class="fw-bold text-danger">
+                                            {% with price_str=car.price|stringformat:"s" %}
+                                                {% if "[" in price_str and "]" in price_str %}
+                                                    {% with price_clean=price_str|slice:"1:-1"|split:"," %}
+                                                        {% if price_clean|length > 1 %}
+                                                            ¥{{ price_clean.1|floatformat:2 }}-{{ price_clean.0|floatformat:2 }}万
+                                                        {% else %}
+                                                            ¥{{ price_clean.0|floatformat:2 }}万
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                {% else %}
+                                                    {{ car.price }}
+                                                {% endif %}
+                                            {% endwith %}
+                                        </span>
+                                    </p>
+                                    <a href="{% url 'car_detail' car.id %}?city={{ city_filter }}&month={{ month_filter }}" class="btn btn-primary w-100">查看详情</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if is_paginated %}
+                    <div class="pagination justify-content-center mt-4">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page=1&city={{ city_filter }}&month={{ month_filter }}&sort={{ current_sort }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}">&laquo;&laquo;</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&city={{ city_filter }}&month={{ month_filter }}&sort={{ current_sort }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}">&laquo;</a></li>
+                                {% else %}
+                                <li class="page-item disabled"><a class="page-link">&laquo;&laquo;</a></li>
+                                <li class="page-item disabled"><a class="page-link">&laquo;</a></li>
+                                {% endif %}
+
+                                {% for num in paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="page-item active"><a class="page-link" href="?page={{ num }}&city={{ city_filter }}&month={{ month_filter }}&sort={{ current_sort }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}">{{ num }}</a></li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ num }}&city={{ city_filter }}&month={{ month_filter }}&sort={{ current_sort }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}">{{ num }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&city={{ city_filter }}&month={{ month_filter }}&sort={{ current_sort }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}">&raquo;</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}&city={{ city_filter }}&month={{ month_filter }}&sort={{ current_sort }}&brand={{ brand_filter }}&brand_initial={{ brand_initial }}&energy={{ energy_filter }}&model={{ model_filter }}&price={{ price_filter }}&keyword={{ keyword_filter }}">&raquo;&raquo;</a></li>
+                                {% else %}
+                                <li class="page-item disabled"><a class="page-link">&raquo;</a></li>
+                                <li class="page-item disabled"><a class="page-link">&raquo;&raquo;</a></li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    <div class="text-center mt-2">
+                        <p class="text-muted">显示 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 条，共 {{ paginator.count }} 条记录</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block echarts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const citySelect = document.getElementById('citySelect');
+    const monthSelect = document.getElementById('monthSelect');
+
+    citySelect.addEventListener('change', function() {
+        if (this.value !== 'all') {
+            monthSelect.value = '0';
+            monthSelect.disabled = true;
+        } else {
+            monthSelect.disabled = false;
+        }
+    });
+
+    if (citySelect.value !== 'all') {
+        monthSelect.value = '0';
+        monthSelect.disabled = true;
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const compareCheckboxes = document.querySelectorAll('.compare-checkbox');
+    const compareBtn = document.getElementById('compareBtn');
+    const compareCount = document.getElementById('compareCount');
+    const selectedCars = JSON.parse(localStorage.getItem('selectedCarsForComparison') || '[]');
+
+    function updateCompareUI() {
+        const checkedCars = Array.from(document.querySelectorAll('.compare-checkbox:checked')).map(cb => cb.value);
+        const allSelectedCars = [...new Set([...checkedCars, ...selectedCars])];
+        localStorage.setItem('selectedCarsForComparison', JSON.stringify(allSelectedCars));
+        const count = allSelectedCars.length;
+        compareCount.textContent = count;
+
+        if (count > 0) {
+            compareBtn.style.display = 'inline-block';
+            compareBtn.href = '{% url "car_comparison" %}?' + allSelectedCars.map(id => `car_id=${id}`).join('&') + `&city={{ city_filter }}&month={{ month_filter }}`;
+        } else {
+            compareBtn.style.display = 'none';
+        }
+
+        if (count >= 4) {
+            compareCheckboxes.forEach(cb => { if (!cb.checked) cb.disabled = true; });
+        } else {
+            compareCheckboxes.forEach(cb => cb.disabled = false);
+        }
+    }
+
+    compareCheckboxes.forEach(cb => {
+        if (selectedCars.includes(cb.value)) cb.checked = true;
+        cb.addEventListener('change', function() {
+            if (!this.checked) {
+                const index = selectedCars.indexOf(this.value);
+                if (index > -1) selectedCars.splice(index, 1);
+            }
+            updateCompareUI();
+        });
+    });
+
+    updateCompareUI();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    helpSteps = [
+        { selector: '.pagetitle h1', text: '这里是汽车列表标题，显示当前筛选的城市、月份和数据范围。' },
+        { selector: '#citySelect, #monthSelect', text: '你可以在这里快速切换城市与月份，筛选不同区域、不同时间的汽车数据。' },
+        { selector: '.card-title', text: '这里是汽车数据列表区域，所有汽车数据都会在这里展示。' },
+        { selector: '.card.shadow-sm', text: '数据筛选区：你可以在这里按品牌、能源类型、车型、价格等更精细筛选汽车。' },
+        { selector: '.car-grid .car-item:first-child', text: '汽车卡片：点击卡片可查看详情，支持勾选对比、销量排序、价格排序。' },
+    ];
+    helpDelay = 300;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,404 @@
+{% extends 'base.html' %}
+{% block title %}汽车价格聚类分析{% endblock %}
+
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">汽车价格聚类分析</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" style="color: var(--biz-normal) !important;">首页</a></li>
+                <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">价格聚类</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<style>
+.card-title {
+    color: var(--biz-dark) !important;
+    font-weight: 600;
+}
+.card {
+    transition: transform 0.28s ease, box-shadow 0.28s ease;
+    will-change: transform, box-shadow;
+}
+.card.h-100 {
+    height: 100% !important;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+}
+
+.breadcrumb-item a {
+    color: var(--biz-normal) !important;
+    transition: color 0.2s ease;
+}
+.breadcrumb-item a:hover {
+    color: var(--biz-dark) !important;
+}
+.breadcrumb-item.active {
+    color: var(--biz-dark) !important;
+    font-weight: 500;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--biz-normal) !important;
+}
+
+#clusterScatter, #clusterPie {
+    width: 100%;
+    position: relative;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+#pieType.form-select {
+    background-color: var(--biz-card-bg);
+    color: var(--biz-text);
+    border-color: var(--biz-border);
+}
+#pieType.form-select:focus {
+    background-color: var(--biz-card-bg);
+    color: var(--biz-text);
+    border-color: var(--biz-normal);
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.2);
+}
+[data-theme="dark"] #pieType.form-select {
+    background-color: #1e293b;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+[data-theme="dark"] #pieType.form-select option {
+    background-color: #1e293b;
+    color: #f1f5f9;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #2563eb;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #1d4ed8;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: #60a5fa;
+}
+</style>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">K-Means 价格聚类（按均价自动分层）</h5>
+                    <div id="clusterScatter" style="height:650px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">各价格簇占比</h5>
+                        <select id="pieType" class="form-select form-select-sm" style="width: auto;">
+                            <option value="count">车型数量占比</option>
+                            <option value="sale">销量总和占比</option>
+                        </select>
+                    </div>
+
+                    <div id="clusterPie" style="height:600px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block echarts %}
+<script>
+function getCurrentTheme() {
+    return document.documentElement.getAttribute('data-theme') || 'light';
+}
+function getChartThemeConfig() {
+    const isDark = getCurrentTheme() === 'dark';
+    return {
+        textColor: isDark ? '#f1f5f9' : '#1e293b',
+        axisColor: isDark ? '#475569' : '#94a3b8',     
+        axisLabelColor: isDark ? '#cbd5e1' : '#64748b', 
+        axisNameColor: isDark ? '#94a3b8' : '#475569',  
+        tooltipBg: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255,255,255,0.95)',
+        tooltipBorder: isDark ? '#334155' : 'rgba(37,99,235,0.2)',
+        splitColor: isDark ? '#334155' : '#e2e8f0'
+    };
+}
+
+let scatterChart = null;
+let pieChart = null;
+let globalData = null;
+
+const softPremiumColors = [
+    '#4285F4', '#34A853', '#FBBC05', '#8AB4F8',
+    '#AC71F2', '#F29900', '#5F6F82'
+];
+
+function debounce(func, wait = 250) {
+    let timeout;
+    return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+function initCharts() {
+    const scatterDom = document.getElementById('clusterScatter');
+    const pieDom = document.getElementById('clusterPie');
+
+    if (!scatterDom || !pieDom) return;
+
+    scatterChart = echarts.init(scatterDom);
+    pieChart = echarts.init(pieDom);
+}
+
+function loadClusterData() {
+    fetch('/app/api/clustering/data/')
+        .then(res => {
+            if (!res.ok) throw new Error('网络响应异常');
+            return res.json();
+        })
+        .then(data => {
+            globalData = data;
+            renderScatter(data.scatter_series);
+            renderCurrentPie();
+        })
+        .catch(err => console.error('聚类数据加载失败 →', err));
+}
+
+function renderScatter(scatterData) {
+    if (!scatterChart || !scatterData) return;
+    const theme = getChartThemeConfig();
+
+    const series = scatterData.map((item, index) => ({
+        ...item,
+        symbolSize: 13,
+        itemStyle: {
+            color: softPremiumColors[index % softPremiumColors.length]
+        },
+        emphasis: {
+            itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.15)' }
+        }
+    }));
+
+    const option = {
+        backgroundColor: 'transparent',
+        title: {
+            text: '价格-销量聚类分布（X=均价，Y=销量）',
+            left: 'left',
+            textStyle: { color: theme.textColor, fontSize: 16, fontWeight: 500 }
+        },
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: theme.tooltipBg,
+            borderColor: theme.tooltipBorder,
+            borderWidth: 1,
+            textStyle: { color: theme.textColor },
+            formatter: params =>
+                `${params.data[2]}<br/>均价：${params.data[0]} 万<br/>销量：${params.data[1]}`
+        },
+        grid: {
+            left: '3%', right: '10%', bottom: '10%', top: '15%', containLabel: true
+        },
+        xAxis: {
+            name: '均价（万元）',
+            type: 'value',
+            nameLocation: 'end',
+            nameGap: 18,
+            nameTextStyle: {
+                color: theme.axisNameColor,
+                fontWeight: 'normal',
+                fontSize: 12
+            },
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: {
+                color: theme.axisLabelColor,
+                fontSize: 11
+            },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        yAxis: {
+            name: '销量',
+            type: 'value',
+            nameLocation: 'end', 
+            nameGap: 22,
+            nameTextStyle: {
+                color: theme.axisNameColor, 
+                fontWeight: 'normal',
+                fontSize: 12
+            },
+            axisLine: { lineStyle: { color: theme.axisColor } },
+            axisLabel: {
+                color: theme.axisLabelColor,
+                fontSize: 11
+            },
+            splitLine: { lineStyle: { color: theme.splitColor } }
+        },
+        series
+    };
+
+    scatterChart.setOption(option, true);
+}
+
+function renderCurrentPie() {
+    if (!globalData) return;
+    const type = document.getElementById('pieType').value;
+
+    let title = '';
+    let data = [];
+    let formatter = '';
+
+    if (type === 'count') {
+        title = '各价格簇车型数量占比';
+        data = globalData.cluster_count;
+        formatter = '{b}: {c} 辆 ({d}%)';
+    } else {
+        title = '各价格簇销量总和占比';
+        data = globalData.cluster_sale_sum;
+        formatter = '{b}: {c} 台 ({d}%)';
+    }
+
+    renderPie(globalData.cluster_names, data, title, formatter);
+}
+
+function renderPie(clusterNames, dataList, title, tooltipFormatter) {
+    if (!pieChart || !clusterNames || !dataList) return;
+    const theme = getChartThemeConfig();
+
+    const pieData = clusterNames.map((name, i) => ({
+        name: name,
+        value: dataList[i] || 0,
+        itemStyle: { color: softPremiumColors[i % softPremiumColors.length] }
+    }));
+
+    const option = {
+        backgroundColor: 'transparent',
+        title: {
+            text: title,
+            left: 'left',
+            textStyle: { color: theme.textColor, fontSize: 16, fontWeight: 500 }
+        },
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: theme.tooltipBg,
+            textStyle: { color: theme.textColor },
+            formatter: tooltipFormatter
+        },
+        legend: {
+            orient: 'horizontal',
+            bottom: 10,
+            left: 'center',
+            textStyle: { fontSize: 13, color: theme.textColor },
+            icon: 'roundRect',
+            itemWidth: 28,
+            itemHeight: 14,
+            itemGap: 18
+        },
+        series: [{
+            type: 'pie',
+            radius: ['0%', '50%'],
+            center: ['50%', '45%'],
+            avoidLabelOverlap: true,
+            itemStyle: {
+                borderRadius: 10,
+                borderColor: 'transparent',
+                borderWidth: 0
+            },
+            label: {
+                show: true,
+                formatter: '{b}\n({d}%)',
+                fontSize: 11,
+                fontWeight: 500,
+                color: theme.textColor
+            },
+            emphasis: {
+                label: { fontSize: 13, fontWeight: 'bold' }
+            },
+            data: pieData
+        }]
+    };
+
+    pieChart.setOption(option, true);
+}
+
+function refreshAllCharts() {
+    if (globalData) {
+        renderScatter(globalData.scatter_series);
+        renderCurrentPie();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initCharts();
+    loadClusterData();
+
+    document.getElementById('pieType').addEventListener('change', () => {
+        renderCurrentPie();
+    });
+
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                refreshAllCharts();
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+});
+
+window.addEventListener('resize', debounce(() => {
+    scatterChart?.resize();
+    pieChart?.resize();
+}));
+
+window.addEventListener('beforeunload', () => {
+    scatterChart?.dispose();
+    pieChart?.dispose();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const helpBtn = document.querySelector('#showHelpBtn');
+    if (!helpBtn) return;
+
+    helpBtn.disabled = false;
+    helpBtn.style.pointerEvents = 'auto';
+    helpBtn.style.opacity = '1';
+    helpBtn.title = "查看页面帮助";
+
+    helpSteps = [
+        {
+            selector: '.pagetitle h1',
+            text: '这里是汽车价格聚类分析页面，基于 K-Means 算法对车型价格+销量自动分层。'
+        },
+        {
+            selector: '.card-title',
+            text: '左侧 K-Means 聚类散点图：X轴=汽车均价，Y轴=销量，自动分成不同价格梯队，直观观察价格与销量分布。'
+        },
+        {
+            selector: '.card:has(#clusterPie)',
+            text: '右侧价格簇占比饼图：可切换车型数量/销量占比，了解市场主流价格区间结构。'
+        },
+        {
+            selector: '#pieType',
+            text: '可在这里切换展示维度：车型数量占比 / 销量总和占比。'
+        }
+    ];
+});
+</script>
+{% endblock %}

@@ -1,0 +1,375 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}个性化推荐{% endblock %}
+
+{% block content %}
+<div class="pagetitle" style="display: flex;align-items: center">
+    <div style="margin-right: auto">
+        <h1 style="color: var(--biz-dark) !important; font-weight: 600;">个性化推荐</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" style="color: var(--biz-normal) !important;">首页</a></li>
+                <li class="breadcrumb-item active" style="color: var(--biz-dark) !important; font-weight: 500;">个性化推荐</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15) !important;
+}
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 4px 16px rgba(96, 165, 250, 0.15) !important;
+}
+.card-title {
+    color: var(--biz-dark) !important;
+    font-weight: 600;
+}
+.btn-primary {
+    background-color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+}
+.btn-primary:hover {
+    background-color: var(--biz-dark) !important;
+    border-color: var(--biz-dark) !important;
+}
+.btn-outline-secondary {
+    color: var(--biz-normal) !important;
+    border-color: var(--biz-normal) !important;
+}
+.btn-outline-secondary:hover {
+    background-color: var(--biz-normal) !important;
+    color: white !important;
+}
+.badge.bg-primary {
+    background-color: var(--biz-normal) !important;
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+}
+.badge.bg-secondary {
+    background-color: rgba(37, 99, 235, 0.12) !important;
+    color: var(--biz-normal) !important;
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+}
+[data-theme="dark"] .badge.bg-secondary {
+    background-color: rgba(96, 165, 250, 0.15) !important;
+}
+.badge.bg-success {
+    background-color: #2563eb !important;
+}
+[data-theme="dark"] .badge.bg-success {
+    background-color: #3b82f6 !important;
+}
+.alert-info {
+    background-color: var(--biz-light) !important;
+    border-color: var(--biz-normal) !important;
+    color: var(--biz-dark) !important;
+}
+.alert-warning {
+    background-color: #fffbeb !important;
+    border-color: #d97706 !important;
+    color: #92400e !important;
+}
+[data-theme="dark"] .alert-warning {
+    background-color: #472b02 !important;
+    border-color: #f59e0b !important;
+    color: #fcd34d !important;
+}
+.form-select, .form-control {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border-color: #ced4da !important;
+}
+[data-theme="dark"] .form-select, [data-theme="dark"] .form-control {
+    background-color: #2d3748 !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+}
+.form-select:focus, .form-control:focus {
+    border-color: var(--biz-normal) !important;
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.2) !important;
+}
+[data-theme="dark"] .form-select:focus, [data-theme="dark"] .form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+}
+.breadcrumb-item a {
+    color: var(--biz-normal) !important;
+    transition: color 0.3s ease;
+}
+.breadcrumb-item a:hover {
+    color: var(--biz-dark) !important;
+}
+.breadcrumb-item.active {
+    color: var(--biz-dark) !important;
+    font-weight: 500;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--biz-normal) !important;
+}
+[data-theme="dark"] .text-muted {
+    color: #cbd5e1 !important;
+}
+[data-theme="dark"] .card-text {
+    color: #e2e8f0 !important;
+}
+[data-theme="dark"] .card-title {
+    color: #f1f5f9 !important;
+}
+.filter-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+}
+[data-theme="dark"] .filter-card {
+    background: #1e293b !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+}
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+.filter-select {
+    flex: 1;
+    min-width: 160px;
+}
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+.car-card-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.car-card-info {
+    flex-grow: 1;
+    margin-bottom: 12px;
+}
+.car-card-btn {
+    align-self: flex-start;
+    margin-top: auto;
+}
+.reason-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+.budget-reason {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+.match-reason {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+.popular-reason {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+}
+[data-theme="dark"] .popular-reason {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+}
+</style>
+
+<section class="section">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">服务说明</h5>
+                    <div class="alert alert-info" role="alert">
+                        <h4 class="alert-heading"><i class="bi bi-lightbulb me-2"></i>智能推荐服务介绍</h4>
+                        <p>根据你的个人信息（性别、年龄、职业、预算）智能分析购车需求，为你精准推荐最适合的车型！</p>
+                        <ul>
+                            <li><strong>预算优先匹配</strong> - 严格根据你的购车预算推荐</li>
+                            <li><strong>年龄/性别适配</strong> - 不同人群推荐不同类型车辆</li>
+                            <li><strong>职业智能推荐</strong> - 商务/家用/代步自动识别</li>
+                            <li><strong>不填信息默认推荐</strong> - 热门高销量车型</li>
+                        </ul>
+                        <hr>
+                        <p class="mb-0">选择信息越完整，推荐结果越精准！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-card">
+        <form method="get" id="recommendForm" class="filter-row">
+            <div class="filter-select">
+                <select name="gender" class="form-select">
+                    <option value="">性别</option>
+                    <option value="男" {% if gender == '男' %}selected{% endif %}>男</option>
+                    <option value="女" {% if gender == '女' %}selected{% endif %}>女</option>
+                </select>
+            </div>
+            <div class="filter-select">
+                <select name="age_group" class="form-select">
+                    <option value="">年龄段</option>
+                    <option value="18-25" {% if age_group == '18-25' %}selected{% endif %}>18-25岁</option>
+                    <option value="26-35" {% if age_group == '26-35' %}selected{% endif %}>26-35岁</option>
+                    <option value="36-50" {% if age_group == '36-50' %}selected{% endif %}>36-50岁</option>
+                    <option value="50+" {% if age_group == '50+' %}selected{% endif %}>50岁以上</option>
+                </select>
+            </div>
+
+            <div class="filter-select">
+                <select name="job" class="form-select">
+                    <option value="">请选择职业</option>
+                    <option value="国家机关/党群组织/事业单位人员" {% if job == "国家机关/党群组织/事业单位人员" %}selected{% endif %}>国家机关/党群组织/事业单位</option>
+                    <option value="专业技术人员" {% if job == "专业技术人员" %}selected{% endif %}>专业技术人员（医生/教师/工程师）</option>
+                    <option value="办事人员和有关人员" {% if job == "办事人员和有关人员" %}selected{% endif %}>办事人员/文职/行政办公</option>
+                    <option value="商业/服务业人员" {% if job == "商业/服务业人员" %}selected{% endif %}>商业/服务业人员（销售/个体）</option>
+                    <option value="农林牧渔水利业生产人员" {% if job == "农林牧渔水利业生产人员" %}selected{% endif %}>农林牧渔水利业人员</option>
+                    <option value="生产制造/运输设备操作人员" {% if job == "生产制造/运输设备操作人员" %}selected{% endif %}>生产制造/蓝领技工</option>
+                    <option value="军人" {% if job == "军人" %}selected{% endif %}>军人</option>
+                    <option value="学生" {% if job == "学生" %}selected{% endif %}>学生</option>
+                    <option value="退休人员" {% if job == "退休人员" %}selected{% endif %}>退休人员</option>
+                    <option value="不便分类的其他从业人员" {% if job == "不便分类的其他从业人员" %}selected{% endif %}>其他从业人员</option>
+                </select>
+            </div>
+
+            <div class="filter-select">
+                <select name="budget_group" class="form-select">
+                    <option value="">预算（万）</option>
+                    <option value="10以下" {% if budget_group == '10以下' %}selected{% endif %}>10万以下</option>
+                    <option value="10-20" {% if budget_group == '10-20' %}selected{% endif %}>10-20万</option>
+                    <option value="20-30" {% if budget_group == '20-30' %}selected{% endif %}>20-30万</option>
+                    <option value="30-50" {% if budget_group == '30-50' %}selected{% endif %}>30-50万</option>
+                    <option value="50万以上" {% if budget_group == '50万以上' %}selected{% endif %}>50万以上</option>
+                </select>
+            </div>
+
+            <div class="filter-buttons">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i>智能推荐
+                </button>
+                <a href="{% url 'car_recommendations' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>重置
+                </a>
+            </div>
+        </form>
+
+        <div class="filter-row mt-3">
+            <div class="filter-select">
+                <select name="brand" class="form-select" form="recommendForm">
+                    <option value="">全部品牌</option>
+                    {% for b in all_brands %}
+                    <option value="{{ b }}" {% if brand_filter == b %}selected{% endif %}>{{ b }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-select">
+                <select name="energy" class="form-select" form="recommendForm">
+                    <option value="">全部能源</option>
+                    {% for e in all_energy_types %}
+                    <option value="{{ e }}" {% if energy_filter == e %}selected{% endif %}>{{ e }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-select">
+                <select name="model" class="form-select" form="recommendForm">
+                    <option value="">全部车型</option>
+                    {% for m in all_car_models %}
+                    <option value="{{ m }}" {% if model_filter == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title help-target-recommend">为你精心推荐</h5>
+                    <p class="text-muted">
+                        {% if gender and age_group and job and budget_group %}
+                        基于你的个人信息智能推荐
+                        {% else %}
+                        未填写个人信息，为你推荐热门车型
+                        {% endif %}
+                    </p>
+                    <div class="row">
+                        {% for car in recommended_cars %}
+                        <div class="col-md-4 col-lg-2 mb-4">
+                            <div class="card h-100">
+                                <img src="{{ car.carimg }}" class="card-img-top" alt="{{ car.carname }}" style="height: 140px; object-fit: cover;">
+                                <div class="card-body car-card-body">
+                                    <div class="car-card-info">
+                                        <h5 class="card-title" style="font-size: 1rem; line-height: 1.3; margin-bottom: 8px;">{{ car.brand }} {{ car.carname }}</h5>
+                                        <p class="card-text mb-0">
+                                            <span class="badge bg-primary">{{ car.energytype }}</span>
+                                            <span class="badge bg-secondary">{{ car.carmodel }}</span>
+                                        </p>
+                                        {% with reasons=recommendation_reasons|get_item:car.id %}
+                                        {% if reasons %}
+                                        <div class="mt-2">
+                                            {% for reason in reasons %}
+                                            <span class="reason-tag {% if '价格' in reason %}budget-reason{% elif '热门' in reason %}popular-reason{% else %}match-reason{% endif %}">{{ reason }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                    <a href="{% url 'car_detail' car.id %}" class="btn btn-sm btn-primary car-card-btn">查看详情</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="alert alert-warning text-center">暂无匹配车型，请调整筛选条件</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const helpBtn = document.querySelector('#showHelpBtn');
+    if (helpBtn) {
+        helpBtn.disabled = false;
+        helpBtn.style.pointerEvents = 'auto';
+        helpBtn.style.opacity = '1';
+        helpBtn.title = "查看页面帮助";
+        helpSteps = [
+            {
+                selector: '.pagetitle h1',
+                text: '这里是个性化推荐页面，选择信息即可获得专属车型推荐。'
+            },
+            {
+                selector: '.alert-info',
+                text: '服务说明：根据性别、年龄、职业、预算智能推荐车型。'
+            },
+            {
+                selector: '.filter-card',
+                text: '选择个人信息并筛选，点击智能推荐获取结果。'
+            },
+            {
+                selector: '.card:has(.help-target-recommend)',
+                text: '为你精心推荐：根据你的信息生成的专属推荐列表。'
+            }
+        ];
+    }
+});
+</script>
+{% endblock %}
